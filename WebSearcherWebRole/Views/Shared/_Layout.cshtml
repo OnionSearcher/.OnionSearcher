@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- <link rel="icon" href="/favicon.ico" /> -->
+    <link rel="icon" href="/favicon.ico" />
     <title>@ViewBag.TitlePrefix .Onion Searcher</title>
 @if (WebSearcherApplication.IsRetailBuild())
 {
@@ -236,11 +236,23 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
             <div class="modal-content">
                 <div class="modal-header">
                     <a href="/" class="close" onclick="return move('indexScreen');">&times;</a>
-                    <h4 class="modal-title">About us...</h4>
+                    <h4 class="modal-title">What is .Onion Searcher ?</h4>
                 </div>
                 <div class="modal-body">
-                    <p>
-                        TODO
+                    <p class="container">
+                        <h4>It's an serch engine for Tor Hidden Services.</h4>
+                        <h4>Anonymous</h4>
+                        <ul>
+                            <li>No user trackers (<i>cookie or worse</i>)</li>
+                            <li>The few collected data in order to improve this service<br />(<i>searched keywords and result click</i>) are not linked to any user data.</li>
+                        </ul>
+                        <h4>Open-Source</h4>
+                        <ul>
+                            <li><a href="https://github.com/OnionSearcher/.OnionSearcher">Sources available on Git</a> (<i>Contributor wanted !</i>)</li>
+                            <li>GNU license</li>
+                        </ul>
+                        <h4>No-script friendly</h4>
+                        <h4>Ads free</h4>
                     </p>
                 </div>
                 <div class="modal-footer">

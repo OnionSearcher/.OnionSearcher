@@ -13,7 +13,7 @@ namespace WebSearcherWorkerRole
     {
 
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        private DateTime startUp = DateTime.Now;
+        private readonly DateTime startUp = DateTime.Now;
 
         public override bool OnStart()
         {
@@ -22,7 +22,7 @@ namespace WebSearcherWorkerRole
 
             bool result = base.OnStart();
 
-            Trace.TraceInformation("CrawlerRole is starting");
+            Trace.TraceInformation("WorkerRole is starting");
 
             // ServicePointManager.ServerCertificateValidationCallback += delegate (object sender, X509Certificate certificate,X509Chain chain,SslPolicyErrors sslPolicyErrors){return true;}; --> app.config checkCertificateName checkCertificateRevocationList
 
@@ -31,7 +31,7 @@ namespace WebSearcherWorkerRole
 
         public override void Run()
         {
-            Trace.TraceInformation("CrawlerRole is running");
+            Trace.TraceInformation("WorkerRole is running");
 
             try
             {
@@ -40,7 +40,7 @@ namespace WebSearcherWorkerRole
             catch (TaskCanceledException) { }
             catch (Exception ex)
             {
-                Trace.TraceError("CrawlerRole RunAsync Exception : " + ex.GetBaseException().ToString());
+                Trace.TraceError("WorkerRole RunAsync Exception : " + ex.GetBaseException().ToString());
             }
         }
 
@@ -76,7 +76,7 @@ namespace WebSearcherWorkerRole
                     // tor check
                     if (!TorManager.IsProcessOk())
                     {
-                        Trace.TraceInformation("Tor KO, restart it");
+                        Trace.TraceInformation("WorkerRole : Tor KO, restart it");
                         disposeSubTask(); // stop sending request
                         TorManager.Stop();
                         await Task.Delay(1000, cancellationToken);
@@ -112,7 +112,7 @@ namespace WebSearcherWorkerRole
             catch (TaskCanceledException) { }
             catch (Exception ex)
             {
-                Trace.TraceError("CrawlerRole.RunAsync Exception : " + ex.GetBaseException().ToString());
+                Trace.TraceError("WorkerRole.RunAsync Exception : " + ex.GetBaseException().ToString());
 #if DEBUG
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
@@ -143,7 +143,7 @@ namespace WebSearcherWorkerRole
 
         public override void OnStop()
         {
-            Trace.TraceInformation("CrawlerRole is stopping");
+            Trace.TraceInformation("WorkerRole is stopping");
 
             this.cancellationTokenSource.Cancel();
 

@@ -1,12 +1,12 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WebSearcherWorkerRole2.Properties" GeneratedClassName="Settings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WebSearcherWorkerRole2" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
     <Setting Name="ComputeIndexedPagesTaskDelay" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">00:10:00</Value>
     </Setting>
     <Setting Name="PagesPurgeTaskDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">04:00:00</Value>
+      <Value Profile="(Default)">01:00:00</Value>
     </Setting>
     <Setting Name="UpdatePageRankTaskDelay" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">00:15:00</Value>
@@ -16,6 +16,9 @@
     </Setting>
     <Setting Name="TimeBeforeRecycle" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">2.00:00:00</Value>
+    </Setting>
+    <Setting Name="HDRootRescanDelay" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">12:00:00</Value>
     </Setting>
   </Settings>
 </SettingsFile>

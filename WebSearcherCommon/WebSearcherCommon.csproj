@@ -66,6 +66,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Model\DailyTableEntityClass.cs" />
     <Compile Include="Model\PageResultEntity.cs" />
     <Compile Include="Model\SearchResultEntity.cs" />
     <Compile Include="Model\PageEntity.cs" />
@@ -88,6 +89,7 @@
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>WebSearcherCommon</CustomToolNamespace>
     </None>
     <None Include="TorExpertBundle\Data\geoip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

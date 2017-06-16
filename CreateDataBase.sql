@@ -74,6 +74,19 @@ CREATE VIEW LookForUrlStopperCandidate AS
 	) s GROUP BY Query --ORDER BY 2 DESC
 GO
 
+CREATE VIEW LookForHiddenServiceMirrorsCandidate AS
+	SELECT m.Title, m.NbHiddenServices, COUNT(1) NbPages, AVG(Rank) Rank, AVG(CrawleError) CrawleError
+		FROM (SELECT Title, COUNT(1) NbHiddenServices FROM Pages WHERE Url=HiddenService GROUP BY Title HAVING COUNT(1)>1) m
+		INNER JOIN Pages p ON m.Title=p.Title
+		GROUP BY m.Title, m.NbHiddenServices
+		--ORDER BY 3 desc
+GO
+
+select p.Title, s.* FROM (
+SELECT HiddenService, count(1) pages, min(url) minUrl, max(url) maxUrl, min(CrawleError) minCrawleError, max(CrawleError) maxCrawleError, min(FirstCrawle) FirstCrawle, max(LastCrawle) LastCrawle from Pages WITH (NOLOCK) group by HiddenService
+)s INNER JOIN Pages p WITH (NOLOCK) ON s.HiddenService = p.Url ORDER BY 1 desc
+
+
 CREATE OR ALTER PROCEDURE UpdateHiddenServicesRankTask(@ret SMALLINT OUTPUT) AS 
 BEGIN
     SET NOCOUNT ON
@@ -88,47 +101,56 @@ BEGIN
 	IF @@ROWCOUNT=1
 	BEGIN
 
-		IF OBJECT_ID('tempdb..#RankingHiddenServices') IS NOT NULL
-			DROP TABLE #RankingHiddenServices
+		IF NOT EXISTS (SELECT 1 FROM HiddenServiceMirrors WHERE HiddenService=@hiddenService)
+		BEGIN
+			IF OBJECT_ID('tempdb..#RankingHiddenServices') IS NOT NULL
+				DROP TABLE #RankingHiddenServices
 
-		SELECT HiddenService, IndexedPages, ReferredByHiddenServices, ReferredByPages INTO #RankingHiddenServices FROM HiddenServices WITH (NOLOCK) WHERE HiddenService = @hiddenService
+			SELECT HiddenService, IndexedPages, ReferredByHiddenServices, ReferredByPages INTO #RankingHiddenServices FROM HiddenServices WITH (NOLOCK) WHERE HiddenService = @hiddenService
 
-		UPDATE r -- long time processing, limited update...
-			SET IndexedPages = (SELECT COUNT(1) FROM Pages WITH (NOLOCK) WHERE Pages.Url LIKE r.HiddenService +'%') -- faster than a query on the Pages.HiddenService
-				,ReferredByPages = COALESCE(s.ReferredByPages,0)
-				,ReferredByHiddenServices = COALESCE(s.ReferredByHiddenServices,0)
-			FROM #RankingHiddenServices r
-				,(
-					SELECT COUNT(DISTINCT HiddenService) as ReferredByHiddenServices, COUNT(1) as ReferredByPages
-						FROM Pages WITH (NOLOCK)
-						WHERE OuterLinks LIKE '%'+@hiddenService+'%'
-				) s
+			UPDATE r -- long time processing, limited update...
+				SET IndexedPages = (SELECT COUNT(1) FROM Pages WITH (NOLOCK) WHERE Pages.Url LIKE r.HiddenService +'%') -- faster than a query on the Pages.HiddenService
+					,ReferredByPages = COALESCE(s.ReferredByPages,0)
+					,ReferredByHiddenServices = COALESCE(s.ReferredByHiddenServices,0)
+				FROM #RankingHiddenServices r
+					,(
+						SELECT COUNT(DISTINCT HiddenService) as ReferredByHiddenServices, COUNT(1) as ReferredByPages
+							FROM Pages WITH (NOLOCK)
+							WHERE OuterLinks LIKE '%'+@hiddenService+'%'
+					) s
 		
-		DECLARE @HDRefHD_Weighting FLOAT = 2.0
-		DECLARE @HDRefPages_Weighting FLOAT = 0.5
+			DECLARE @HDRefHD_Weighting FLOAT = 2.0
+			DECLARE @HDRefPages_Weighting FLOAT = 0.5
 	
-		DECLARE @HDRefHD_Max FLOAT = 1.0
-		DECLARE @HDRefHD_Range INT = 10
-		DECLARE @HDRefHD_Min FLOAT = 0.0
+			DECLARE @HDRefHD_Max FLOAT = 1.0
+			DECLARE @HDRefHD_Range INT = 10
+			DECLARE @HDRefHD_Min FLOAT = 0.0
 
-		DECLARE @HDRefPages_Max FLOAT = 1.0
-		DECLARE @HDRefPages_Range INT = 100
-		DECLARE @HDRefPages_Min FLOAT = 0.0
+			DECLARE @HDRefPages_Max FLOAT = 1.0
+			DECLARE @HDRefPages_Range INT = 100
+			DECLARE @HDRefPages_Min FLOAT = 0.0
 
-		UPDATE t
-			SET RankDate = SYSDATETIMEOFFSET()
-				,IndexedPages = r.IndexedPages
-				,Rank = (@HDRefHD_Weighting*CASE
-					WHEN r.ReferredByHiddenServices>=@HDRefHD_Range THEN @HDRefHD_Max
-					ELSE @HDRefHD_Min+(@HDRefHD_Max-@HDRefHD_Min)*(r.ReferredByHiddenServices)/@HDRefHD_Range
-				END+@HDRefPages_Weighting*CASE
-					WHEN r.ReferredByPages>=@HDRefPages_Range THEN @HDRefPages_Max
-					ELSE @HDRefPages_Min+(@HDRefPages_Max-@HDRefPages_Min)*(r.ReferredByPages)/@HDRefPages_Range
-				END)/(@HDRefHD_Weighting+@HDRefPages_Weighting)
-			FROM HiddenServices t
-			INNER JOIN #RankingHiddenServices r ON t.HiddenService=r.HiddenService
+			UPDATE t
+				SET RankDate = SYSDATETIMEOFFSET()
+					,IndexedPages = r.IndexedPages
+					,Rank = (@HDRefHD_Weighting*CASE
+						WHEN r.ReferredByHiddenServices>=@HDRefHD_Range THEN @HDRefHD_Max
+						ELSE @HDRefHD_Min+(@HDRefHD_Max-@HDRefHD_Min)*(r.ReferredByHiddenServices)/@HDRefHD_Range
+					END+@HDRefPages_Weighting*CASE
+						WHEN r.ReferredByPages>=@HDRefPages_Range THEN @HDRefPages_Max
+						ELSE @HDRefPages_Min+(@HDRefPages_Max-@HDRefPages_Min)*(r.ReferredByPages)/@HDRefPages_Range
+					END)/(@HDRefHD_Weighting+@HDRefPages_Weighting)
+				FROM HiddenServices t
+				INNER JOIN #RankingHiddenServices r ON t.HiddenService=r.HiddenService
 
-		DROP TABLE #RankingHiddenServices
+			DROP TABLE #RankingHiddenServices
+		END
+		ELSE -- manage mirror
+			UPDATE HiddenServices
+				SET RankDate = SYSDATETIMEOFFSET(), Rank=0.0,ReferredByHiddenServices=NULL, ReferredByPages=NULL
+				,IndexedPages=(SELECT COUNT(1) FROM Pages WITH (NOLOCK) WHERE Pages.Url LIKE @hiddenService +'%')
+				WHERE HiddenService=@hiddenService
+
 		SELECT @ret=1
 			WHERE EXISTS (SELECT 1 FROM HiddenServices WITH (NOLOCK) WHERE RankDate IS NULL OR DATEADD(hh, @MinHiddenServicesRankRefreshHours, RankDate) < SYSDATETIMEOFFSET())
 	END
@@ -169,7 +191,7 @@ BEGIN
 			END AS ErrorRank
 		INTO #RankingPages
 		FROM Pages WITH (NOLOCK)
-		WHERE RankDate IS NULL OR DATEADD(hh, @MinPagesRankRefreshHours, RankDate) < SYSDATETIMEOFFSET()
+		WHERE (RankDate IS NULL OR DATEADD(hh, @MinPagesRankRefreshHours, RankDate) < SYSDATETIMEOFFSET()) AND (TITLE IS NOT NULL) -- title is null when never scanned, so stay at a 0 rank 
 		ORDER BY RankDate ASC -- null first
 
 	DECLARE @UrlRank_Weighting FLOAT = 2.0
@@ -251,21 +273,27 @@ BEGIN
 	PRINT 'ComputeIndexedPagesTask - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
 	EXEC ComputeIndexedPagesTask
 	
-	PRINT 'UpdateHiddenServicesRankTask - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
 	SELECT @ret=1
 	WHILE @ret = 1
-	   exec UpdateHiddenServicesRankTask @ret OUT
+	BEGIN
+		PRINT 'UpdateHiddenServicesRankTask - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
+		EXEC UpdateHiddenServicesRankTask @ret OUT
+	END
+	
+	SELECT @ret=1
+	WHILE @ret = 1
+	BEGIN
+		PRINT 'UpdatePageRankTask - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
+		EXEC UpdatePageRankTask @ret OUT
+	END
 
-	PRINT 'UpdatePageRankTask - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
 	SELECT @ret=1
 	WHILE @ret = 1
-	   exec UpdatePageRankTask @ret OUT
+	BEGIN
+		PRINT 'PagesPurgeTask - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
+		EXEC PagesPurgeTask @ret OUT
+	END
 
-	PRINT 'PagesPurgeTask - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
-	SELECT @ret=1
-	WHILE @ret = 1
-	   exec PagesPurgeTask @ret OUT
-	   
 	PRINT 'INDEX REORGANIZE - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
 	ALTER INDEX ALL ON Pages REORGANIZE
 	-- ALTER INDEX ALL ON Pages REBUILD -- offline
@@ -278,7 +306,7 @@ BEGIN
 	PRINT 'END - ' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
 END
 GO
--- need tp be admin to execute...
+-- need to be admin to do EXEC DbCleanTask
 
 CREATE OR ALTER PROCEDURE ComputeIndexedPagesTask
 AS
@@ -400,6 +428,6 @@ DELETE FROM Pages WHERE Url like '%?redirect_to=%' OR Url like '%?sort=%' OR Url
 -- Stats
 select p.Title, s.* FROM (
 SELECT HiddenService, count(1) pages, min(url) minUrl, max(url) maxUrl, min(CrawleError) minCrawleError, max(CrawleError) maxCrawleError, min(FirstCrawle) FirstCrawle, max(LastCrawle) LastCrawle from Pages WITH (NOLOCK) group by HiddenService
-)s INNER JOIN Pages p WITH (NOLOCK) ON s.HiddenService = p.Url ORDER BY 3 desc
+)s INNER JOIN Pages p WITH (NOLOCK) ON s.HiddenService = p.Url ORDER BY 1 desc
 
 EXEC sp_spaceused N'Pages'

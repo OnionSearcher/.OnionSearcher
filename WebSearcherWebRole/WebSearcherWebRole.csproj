@@ -98,6 +98,7 @@
     <Content Include="error500.htm" />
     <Content Include="error501.htm" />
     <Content Include="error502.htm" />
+    <Content Include="favicon.ico" />
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Home\Add.cshtml" />
     <Content Include="Views\Home\Index.cshtml" />
@@ -121,7 +122,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Global.asax" />
-    <Content Include="Web.config" />
+    <Content Include="Web.config">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\WebSearcherCommon\Properties\AssemblyInfoGlobal.cs">
@@ -141,7 +144,7 @@
     <None Include="torrc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="WebRole.cs" />
+    <Compile Include="WebRole.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

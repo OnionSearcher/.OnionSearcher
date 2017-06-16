@@ -34,7 +34,7 @@ namespace WebSearcherWorkerRole2 {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("04:00:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
         public global::System.TimeSpan PagesPurgeTaskDelay {
             get {
                 return ((global::System.TimeSpan)(this["PagesPurgeTaskDelay"]));
@@ -65,6 +65,15 @@ namespace WebSearcherWorkerRole2 {
         public global::System.TimeSpan TimeBeforeRecycle {
             get {
                 return ((global::System.TimeSpan)(this["TimeBeforeRecycle"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("12:00:00")]
+        public global::System.TimeSpan HDRootRescanDelay {
+            get {
+                return ((global::System.TimeSpan)(this["HDRootRescanDelay"]));
             }
         }
     }

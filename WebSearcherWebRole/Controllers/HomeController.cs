@@ -48,7 +48,7 @@ namespace WebSearcherWebRole
                             if (p <= 0)
                                 p = 1;
                         }
-                    }  
+                    }
 
                     ShorterCache();
                     using (SqlManager sql = new SqlManager())
@@ -70,16 +70,15 @@ namespace WebSearcherWebRole
                                 ViewBag.PageD = 4;
                                 ViewBag.PageE = 5;
                             }
-                            else if ((p - 2) * 10 > ret.ResultsTotalNb)
+                            else if ((p + 1) * 10 < ret.ResultsTotalNb)
                             {
                                 ViewBag.PageA = p - 2;
                                 ViewBag.PageB = p - 1;
                                 ViewBag.PageC = p;
                                 ViewBag.PageD = p + 1;
                                 ViewBag.PageE = p + 2;
-
                             }
-                            else if ((p - 1) * 10 > ret.ResultsTotalNb)
+                            else if (p * 10 < ret.ResultsTotalNb)
                             {
                                 ViewBag.PageA = p - 3;
                                 ViewBag.PageB = p - 2;
@@ -115,7 +114,7 @@ namespace WebSearcherWebRole
                         q = Request.QueryString["msg"];
                         if (!string.IsNullOrWhiteSpace(q))
                         {
-                            switch(q)
+                            switch (q)
                             {
                                 case "1":
                                     ViewBag.AlertSuccess = "Thanks, the URL will be checked soon.";

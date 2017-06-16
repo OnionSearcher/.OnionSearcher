@@ -51,7 +51,7 @@ namespace WebSearcherWebRole
 
             MvcHandler.DisableMvcResponseHeader = true;
 
-            dequeueBackground = Task.Run(() => { StorageManager.DequeueAsync(cancellationTokenSource.Token).Wait(); }, cancellationTokenSource.Token);
+            dequeueBackground = Task.Run(() => { StorageManager.DequeueAsync(cancellationTokenSource.Token).Wait(cancellationTokenSource.Token); }, cancellationTokenSource.Token);
         }
 
         protected void Application_PreSendRequestHeaders()

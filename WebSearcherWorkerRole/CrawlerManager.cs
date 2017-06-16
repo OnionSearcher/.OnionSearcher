@@ -75,7 +75,15 @@ namespace WebSearcherWorkerRole
                     }
                     catch (WebException ex)
                     {
-                        Trace.TraceWarning("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Error " + (ex.Response != null ? ((HttpWebResponse)ex.Response).StatusCode.ToString() : ex.GetBaseException().Message));
+                        HttpWebResponse err = ex.Response as HttpWebResponse;
+                        if (err != null)
+                        {
+                            page.InnerText = err.StatusDescription;
+                        }
+                        else
+                        {
+                            Trace.TraceWarning("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Error " + ex.GetBaseException().Message);
+                        }
 
                         await sql.PageInsertOrUpdateKo(page, cancellationToken); // only used for follow the connection issue with the host, not crawler inernal issue
                         return false;
@@ -91,13 +99,20 @@ namespace WebSearcherWorkerRole
                     htmlDoc.DocumentNode.Descendants("style").ToList().ForEach(x => x.Remove()); // else appear in InnerText !
                     htmlDoc.DocumentNode.Descendants().Where(n => n.NodeType == HtmlNodeType.Comment).ToList().ForEach(x => x.Remove()); // else appear in InnerText !
 
+                    // Title
                     HtmlNode htmlNode2 = htmlDoc.DocumentNode.SelectSingleNode("//head/title");
-                    page.Title = htmlNode2 != null ? PageEntity.NormalizeText(HttpUtility.HtmlDecode(htmlNode2.InnerText)) : uriOrig.Host; // some &lsaquo; not uncoded else
+                    if (!string.IsNullOrEmpty(page.InnerText))
+                        page.Title = PageEntity.NormalizeText(HttpUtility.HtmlDecode(htmlNode2.InnerText));
+                    else
+                        page.Title = uriOrig.Host;
+                    // InnerText
                     htmlNode2 = htmlDoc.DocumentNode.SelectSingleNode("//body");
-                    page.InnerText = htmlNode2 != null ? PageEntity.NormalizeText(HttpUtility.HtmlDecode(htmlNode2.InnerText)) : string.Empty; // can't be null
+                    if (!string.IsNullOrEmpty(page.InnerText))
+                        page.InnerText = PageEntity.NormalizeText(HttpUtility.HtmlDecode(htmlNode2.InnerText));
+                    else
+                        page.InnerText = string.Empty; // null will raise an exception on the sql proc call
                     htmlNode2 = null;
-
-
+                    
                     // <A href digest
                     page.InnerLinks = new HashSet<string>();
                     page.OuterLinks = new HashSet<string>();

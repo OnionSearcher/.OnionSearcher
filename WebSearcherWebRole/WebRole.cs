@@ -8,15 +8,15 @@ using WebSearcherCommon;
 
 namespace WebSearcherWebRole
 {
-    public class WebRole : RoleEntryPoint
+    public class WebRole : RoleEntryPoint, IDisposable
     {
-        private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        private DateTime startUp = DateTime.Now;
+        private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private readonly DateTime startUp = DateTime.Now;
 
         public override bool OnStart()
         {
             // Set the maximum number of concurrent connections
-            ServicePointManager.DefaultConnectionLimit = 32;
+            ServicePointManager.DefaultConnectionLimit = 1024;
 
             // TOFIX : can t manage the Server header Microsoft-HTTPAPI/2.0" from http response ...
             //string errRegistry = null;
@@ -58,9 +58,6 @@ namespace WebSearcherWebRole
         {
             try
             {
-                await TorManager.WaitStartedAsync(cancellationToken);
-                TorManager.TraceHostname();
-
                 while (!cancellationToken.IsCancellationRequested && (startUp.Add(Settings.Default.TimeBeforeRecycle) > DateTime.Now))
                 {
                     // tor check
@@ -73,6 +70,7 @@ namespace WebSearcherWebRole
                         {
                             TorManager.Start();
                             await TorManager.WaitStartedAsync(cancellationToken);
+                            TorManager.TraceHostname();
                         }
                     }
                     await Task.Delay(20000, cancellationToken);
@@ -95,6 +93,26 @@ namespace WebSearcherWebRole
 
             base.OnStop();
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false;
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    cancellationTokenSource.Dispose();
+                    cancellationTokenSource = null;
+                }
+                disposedValue = true;
+            }
+        }
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+        #endregion
 
     }
 }

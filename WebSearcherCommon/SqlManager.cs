@@ -147,8 +147,8 @@ WHEN NOT MATCHED THEN INSERT (Url,HtmlRaw) VALUES (source.Url,source.HtmlRaw);",
 
             if (!cancellationToken.IsCancellationRequested)
                 using (SqlCommand cmd = new SqlCommand(@"MERGE Pages AS target USING (SELECT @url,@LastCrawle,@HiddenService) AS source (Url,LastCrawle,HiddenService) ON (target.Url = source.Url)
-WHEN MATCHED THEN UPDATE SET CrawleError=COALESCE(CrawleError,0)+1,LastCrawle=source.LastCrawle,Rank=CASE WHEN Rank IS NOT NULL THEN Rank/2.0 ELSE 0.0 END
-WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleError,Rank) VALUES (source.Url,source.LastCrawle,source.LastCrawle,source.HiddenService,1,0.0);", conn))
+WHEN MATCHED THEN UPDATE SET CrawleError=COALESCE(CrawleError,0)+1,LastCrawle=source.LastCrawle,Rank=CASE WHEN Rank IS NOT NULL THEN Rank/2.0 ELSE 0.0 END,RankDate=SYSDATETIMEOFFSET()
+WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleError,Rank,RankDate) VALUES (source.Url,source.LastCrawle,source.LastCrawle,source.HiddenService,1,0.0,SYSDATETIMEOFFSET());", conn)) // rank at 0 a new or half it if previously OK
                 {
                     cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar).Value = page.HiddenService;
                     cmd.Parameters.Add("@Url", SqlDbType.NVarChar).Value = page.Url;
@@ -163,7 +163,7 @@ WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleErr
             await CheckOpenAsync(cancellationToken);
 
             if (!cancellationToken.IsCancellationRequested)
-                using (SqlCommand cmd = new SqlCommand("SELECT HiddenService, COUNT(1) from Pages WITH (NOLOCK) GROUP BY HiddenService ORDER BY 2 ASC", conn))
+                using (SqlCommand cmd = new SqlCommand("SELECT HiddenService FROM HiddenServices WITH (NOLOCK) ORDER BY Rank DESC", conn))
                 {
                     cmd.CommandType = CommandType.Text;
 

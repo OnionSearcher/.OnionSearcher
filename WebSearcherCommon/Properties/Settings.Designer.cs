@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace WebSearcherCommon.Properties {
+namespace WebSearcherCommon {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]

@@ -286,6 +286,9 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+
+#local
+*.wadcfgx
 /WebSearcherCommon/TorExpertBundle/Data/state
 /WebSearcherCommon/TorExpertBundle/Data/private_key
 /WebSearcherCommon/TorExpertBundle/Data/lock
@@ -307,3 +310,7 @@ __pycache__/
 /WebSearcherCommon/TorExpertBundle/Tor/libevent_core-2-0-5.dll
 /WebSearcherCommon/TorExpertBundle/Tor/libevent-2-0-5.dll
 /WebSearcherCommon/TorExpertBundle/Tor/libeay32.dll
+/WebSearcherWebRole/r.js
+/WebSearcherWebRole/r.css
+/WebSearcherWebRole/TorExpertBundle/hostname
+/WebSearcherWebRole/TorExpertBundle/private_key

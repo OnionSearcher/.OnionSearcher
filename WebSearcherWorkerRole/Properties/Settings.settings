@@ -1,19 +1,19 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WebSearcherWorkerRole.Properties" GeneratedClassName="Settings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WebSearcherWorkerRole" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
     <Setting Name="FirstOnion" Type="System.Collections.Specialized.StringCollection" Scope="Application">
       <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
 &lt;ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"&gt;
-  &lt;string&gt;http://zqktlwi4fecvo6ri.onion/wiki/index.php&lt;/string&gt;
-  &lt;string&gt;http://deepdot35wvmeyd5.onion&lt;/string&gt;
+  &lt;string&gt;http://zqktlwi4fecvo6ri.onion/&lt;/string&gt;
+  &lt;string&gt;http://deepdot35wvmeyd5.onion/&lt;/string&gt;
 &lt;/ArrayOfString&gt;</Value>
     </Setting>
     <Setting Name="NbCrawlersPerInstance" Type="System.Int16" Scope="Application">
       <Value Profile="(Default)">16</Value>
     </Setting>
     <Setting Name="TimeBeforeRecycle" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">02:00:00</Value>
+      <Value Profile="(Default)">01:00:00</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -27,8 +27,8 @@ namespace WebSearcherWorkerRole {
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
 <ArrayOfString xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
-  <string>http://zqktlwi4fecvo6ri.onion/wiki/index.php</string>
-  <string>http://deepdot35wvmeyd5.onion</string>
+  <string>http://zqktlwi4fecvo6ri.onion/</string>
+  <string>http://deepdot35wvmeyd5.onion/</string>
 </ArrayOfString>")]
         public global::System.Collections.Specialized.StringCollection FirstOnion {
             get {
@@ -47,7 +47,7 @@ namespace WebSearcherWorkerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("02:00:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
         public global::System.TimeSpan TimeBeforeRecycle {
             get {
                 return ((global::System.TimeSpan)(this["TimeBeforeRecycle"]));

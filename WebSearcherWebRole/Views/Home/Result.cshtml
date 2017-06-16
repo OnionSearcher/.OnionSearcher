@@ -40,7 +40,7 @@
                 <div class="row">
                     <nav aria-label="Page navigation" class="col-sm-offset-1 col-sm-6">
                         <ul class="pagination">
-                            <li @(ViewBag.Previous?"":"class=disabled")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.Page-1)" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
+                            <li @(ViewBag.Previous?"":"class=disabled")><a href="@(ViewBag.Previous ? "/?q="+ViewBag.ResearchUrlEncoded+"&amp;p="+(ViewBag.Page-1):"#")" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
                             <li @(ViewBag.PageA!= ViewBag.Page ? "": "class=active")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.PageA)">@(ViewBag.PageA)</a></li>
                             <li @(ViewBag.PageB!= ViewBag.Page ? "": "class=active")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.PageB)">@(ViewBag.PageB)</a></li>
                             @if (ViewBag.ResultsTotalNb > 20)
@@ -55,7 +55,7 @@
                                     }
                                 }
                             }
-                            <li @(ViewBag.Next ? "":"class=disabled")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.Page+1)" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
+                            <li @(ViewBag.Next ? "":"class=disabled")><a href="@(ViewBag.Next ? "/?q="+ViewBag.ResearchUrlEncoded+"&amp;p="+(ViewBag.Page+1):"#")" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
                         </ul>
                     </nav>
                 </div>

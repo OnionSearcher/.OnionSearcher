@@ -9,6 +9,7 @@ An open source, anonymous, no-script friendly, ads free, search engine dedicated
 - Search results quality
 - Ranking quality
 - UTF16 pages don't display correctly
+- Trace don't work for WebRole class (but the reel web trace are OK, juste the Azure service himself
 
 ## TODO
 
@@ -16,6 +17,7 @@ An open source, anonymous, no-script friendly, ads free, search engine dedicated
 - Page mirror detection
 - Better english
 - Upgrade to Bootstrap 4 when it will be released
+- Abuse/Report system for user
 
 ## Contributing
 

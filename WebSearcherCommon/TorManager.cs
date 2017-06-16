@@ -20,6 +20,7 @@ namespace WebSearcherCommon
                 if (e.Data.Contains("[warn]") && !e.Data.Contains(" is relative"))
                 {
                     Trace.TraceWarning("TorManager : " + e.Data);
+                    // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
 #if DEBUG
                     if (Debugger.IsAttached) { Debugger.Break(); } // sometime Tor stay up between debug session, remeber to kill him if required
 #endif
@@ -27,6 +28,7 @@ namespace WebSearcherCommon
                 else if (e.Data.Contains("[err]"))
                 {
                     Trace.TraceError("TorManager : " + e.Data);
+                    // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
 #if DEBUG
                     if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
@@ -36,14 +38,17 @@ namespace WebSearcherCommon
                     if (e.Data.Contains("Tor has successfully opened a circuit."))
                         hasStarted = true;
                     Trace.TraceInformation("TorManager : " + e.Data);
+                    // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
                 }
             }
         }
+
         internal static void ErrorOutputHandler(object sender, DataReceivedEventArgs e)
         {
             if (!String.IsNullOrWhiteSpace(e.Data))
             {
                 Trace.TraceError("TorManager : " + e.Data);
+                // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
 #if DEBUG
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
@@ -53,6 +58,20 @@ namespace WebSearcherCommon
         static private Process torProcess;
         private static bool hasStarted;
 
+        private static void KillTorIfRequired()
+        {
+            try
+            {
+                // sometime Tor is not well killed (at last in dev mode)
+                foreach (var oldProcess in Process.GetProcessesByName("tor"))
+                    oldProcess.Kill(); //permission issue on Azure may occur
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("TorManager.killTorIfRequired Exception : " + ex.GetBaseException().ToString());
+            }
+        }
+
         public static bool Start()
         {
             try
@@ -60,19 +79,23 @@ namespace WebSearcherCommon
                 Trace.TraceInformation("TorManager.Start");
                 hasStarted = false;
 
-                // sometime Tor is not well killed (at last in dev mode)
-                foreach (var process in Process.GetProcessesByName("tor"))
+                KillTorIfRequired();
+
+                string basePath = AppDomain.CurrentDomain.BaseDirectory;
+                
+                if (File.Exists(Path.Combine(basePath, @"TorExpertBundle\hostname"))) // copy keyfiles, need to be writen else the azure cloud service won't have the right for rewrite the file (don't kwow why Tor rewrite the same file...)
                 {
-                    process.Kill();
+                    File.Copy(Path.Combine(basePath, @"TorExpertBundle\hostname"), Path.Combine(basePath, @"TorExpertBundle\Data\hostname"));
+                    File.Copy(Path.Combine(basePath, @"TorExpertBundle\private_key"), Path.Combine(basePath, @"TorExpertBundle\Data\private_key"));
                 }
 
                 torProcess = new Process()
                 {
                     StartInfo = new ProcessStartInfo
                     {
-                        WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory, // changing that doesn't seems to work well with azure emulator
-                        FileName = "TorExpertBundle\\Tor\\tor.exe", // le WorkingDirectory ne marchaint pas trop en fait...
-                        Arguments = "--defaults-torrc \"" + Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "torrc-defaults") + "\" -f \"" + Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "torrc") + "\" --ignore-missing-torrc", // full path not mandatory but avoid a warning...
+                        WorkingDirectory = basePath, // changing that doesn't seems to work well with azure emulator
+                        FileName = "TorExpertBundle\\Tor\\tor.exe",
+                        Arguments = "--defaults-torrc \"" + Path.Combine(basePath, "torrc-defaults") + "\" -f \"" + Path.Combine(basePath, "torrc") + "\" --ignore-missing-torrc", // full path not mandatory but avoid a warning...
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
@@ -92,6 +115,7 @@ namespace WebSearcherCommon
             catch (Exception ex)
             {
                 Trace.TraceError("TorManager.Start Exception : " + ex.GetBaseException().ToString());
+                // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager.TraceHostname Exception : " + ex.GetBaseException().ToString());
 #if DEBUG
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
@@ -99,8 +123,7 @@ namespace WebSearcherCommon
             }
             return true;
         }
-
-
+        
         public static async Task WaitStartedAsync(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested && ! hasStarted)
@@ -116,8 +139,9 @@ namespace WebSearcherCommon
                 if (torProcess != null)
                 {
                     torProcess.Close();
+                    torProcess = null;
                 }
-                torProcess = null;
+                KillTorIfRequired();
             }
             catch (Exception ex)
             {
@@ -142,6 +166,7 @@ namespace WebSearcherCommon
             catch (Exception ex)
             {
                 Trace.TraceError("TorManager.TraceHostname Exception : " + ex.GetBaseException().ToString());
+                // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager.TraceHostname Exception : " + ex.GetBaseException().ToString());
 #if DEBUG
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif

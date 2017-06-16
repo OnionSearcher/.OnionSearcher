@@ -11,6 +11,8 @@ namespace WebSearcherCommon
 
         private static readonly StringCollection urlStopper = Settings.Default.UrlStopper; // local cache for faster access
 
+        private static readonly Regex regexWhiteSpace = new Regex(@"[\s]{2,}", RegexOptions.None);
+
         public static string NormalizeUrl(string absoluteHref)
         {
             if (string.IsNullOrEmpty(absoluteHref))
@@ -39,8 +41,6 @@ namespace WebSearcherCommon
 
             return absoluteHref;
         }
-        
-        private static readonly Regex regexWhiteSpace = new Regex(@"[\s]{2,}", RegexOptions.None);
         
         public static string NormalizeText(string innerText)
         {
