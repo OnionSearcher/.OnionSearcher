@@ -1,0 +1,7 @@
+USE master
+
+DROP LOGIN sqlReader
+DROP LOGIN sqlWriter
+
+CREATE LOGIN sqlReader WITH PASSWORD = 'TODO'
+CREATE LOGIN sqlWriter WITH PASSWORD = 'todo'

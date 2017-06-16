@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ServiceDefinition name="AzureSearcherWebRole" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition" schemaVersion="2015-04.2.6">
+  <WebRole name="WebSearcherWebRole" vmsize="Small">
+    <Sites>
+      <Site name="Web">
+        <Bindings>
+          <Binding name="Endpoint1" endpointName="Endpoint80" />
+        </Bindings>
+      </Site>
+    </Sites>
+    <ConfigurationSettings>
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
+      <Setting name="SharedStorage" />
+    </ConfigurationSettings>
+    <Endpoints>
+      <InputEndpoint name="Endpoint80" protocol="http" port="80" />
+    </Endpoints>
+    <LocalResources>
+    </LocalResources>
+  </WebRole>
+</ServiceDefinition>

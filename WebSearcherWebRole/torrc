@@ -1,0 +1,3 @@
+HiddenServiceDir ./TorExpertBundle/Data
+HiddenServicePort 80 127.0.0.1:50163
+FetchHidServDescriptors 0

@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="icon" href="/favicon.ico" /> -->
+    <title>@ViewBag.TitlePrefix .Onion Searcher</title>
+@if (WebSearcherApplication.IsRetailBuild())
+{
+    <link type="text/css" rel="stylesheet" href="/r.css?@(WebSearcherApplication.GetVersion())" />
+}
+else
+{
+    <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.css?@(WebSearcherApplication.GetVersion())" />
+}
+    <style>
+        html {
+        }
+        html, body {
+            position: relative;
+            min-height: 100%;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            height: 100%;
+            z-index: -2;
+            background: #fdfdfd;
+        }
+        body {
+            padding-top: 60px;
+            padding-bottom: 60px;
+        }
+
+        header.navbar-default, footer {
+            position: absolute;
+            width: 100%;
+            height: 50px;
+            background-color: #f1f1f1;
+            background-image: none;
+        }
+
+        header {
+            top: 0px;
+        }
+
+        footer {
+            bottom: 0px;
+            text-align: center;
+            font-style: italic;
+            font-size: 10px;
+            border-top: 1px solid #e7e7e7;
+            z-index:-1;
+            position:fixed;
+        }
+
+        .indexScreen, .notIndexScreen, .contactScreen, .aboutScreen, .addScreen, .resultScreen {
+            display: none;
+        }
+
+        .indexForm, .contactScreen, .aboutScreen, .addScreen {
+            position: absolute;
+            top: 48%;
+            transform: translateY(-50%);
+            width: 100%;
+        }
+
+        h1 {
+            font-family: Calibri, "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-weight: bold;
+            letter-spacing: -2px;
+            margin-top: -4px;
+            color: #222;
+        }
+        h6 {
+            margin: -6px 0 0 0;
+        }
+        h6 > .label {
+            padding: 0 1px;
+            margin-left: 8px;
+        }
+        .navbar-brand {
+            font-family: Calibri, "Helvetica Neue", Helvetica, Arial, sans-serif;
+            letter-spacing: -1px;
+            font-size: 22px;
+            line-height: 18px;
+        }
+
+        @@media screen and (min-width: 768px) {
+            .jumbotron h1 {
+                font-size: 52px;
+            }
+        }
+
+        @@media screen and (max-width: 450px) {
+            .jumbotron h1 {
+                font-size: 24px;
+            }
+        }
+
+    </style>
+
+</head>
+<body>
+
+    <header class="navbar navbar-fixed-top navbar-default indexScreen">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/add" onclick="return move('addScreen');">Add service</a></li>
+                    <li><a href="/contact" onclick="return move('contactScreen');">Contact</a></li>
+                    <li><a href="/about" onclick="return move('aboutScreen');">About</a></li>
+                    </ul>
+            </div>
+        </div>
+    </header>
+    <header class="navbar navbar-fixed-top navbar-default notIndexScreen">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/" onclick="return move('indexScreen');">.Onion Searcher</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <form class="navbar-form navbar-left" method="get" action="/">
+                    <div class="form-group">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search for..." name="q" id="qNotIndex" maxlength="64" value="@ViewBag.Research" />
+                            <span class="input-group-btn">
+                                <button class="btn btn-default" type="submit">🔍</button>
+                            </span>
+                        </div>
+                    </div>
+                </form>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/add" onclick="return move('addScreen');">Add service</a></li>
+                    <li><a href="/contact" onclick="return move('contactScreen');">Contact</a></li>
+                    <li><a href="/about" onclick="return move('aboutScreen');">About</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+@if (!string.IsNullOrEmpty(ViewBag.AlertDanger))
+{
+    <div class="container">
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>@ViewBag.AlertDanger</strong>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
+{
+   <div class="container"> 
+       <div class="alert alert-success alert-dismissible" role="alert">
+           <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+           <strong>@ViewBag.AlertSuccess</strong>
+       </div>
+   </div>
+}
+
+    <form method="get" class="indexScreen indexForm" action="/">
+        <div class="container">
+            <div class="jumbotron align-middle">
+                <h1>Tor Hidden Services Searcher</h1>
+                <div class="form-group">
+                    <div class="input-group input-group-lg">
+                        <input type="text" class="form-control" name="q" id="qIndex" placeholder="Search hidden service for..." maxlength="64"/>
+                        <span class="input-group-btn">
+                            <button class="btn btn-default btn-primary" type="submit">🔍</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <form method="post" action="/add" class="addScreen">
+        <div role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <a href="/" class="close" onclick="return move('indexScreen');">&times;</a>
+                        <h4 class="modal-title">Request the addition of a hiden service</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p><div class="input-group input-group-lg">
+                            <span class="input-group-addon">URL</span>
+                            <input type="text" class="form-control" id="addUrl" name="url" placeholder="http://1324567890132456.onion/" maxlength="256" />
+                        </div></p>
+                    </div>
+                    <div class="modal-footer">
+                        <a href="/" class="btn btn-default" onclick="return move('indexScreen');">CANCEL</a>
+                        <button type="submit" class="btn btn-default btn-primary">ADD</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <form method="post" action="/contact" class="contactScreen">
+        <div role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <a href="/" class="close" onclick="return move('indexScreen');">&times;</a>
+                        <h4 class="modal-title">Send us a message</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            <textarea  rows="5" class="form-control" id="contactMsg" name="msg" placeholder="A suggestion or an issue to report or  ?" maxlength="8000"></textarea>
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <a href="/" class="btn btn-default" onclick="return move('indexScreen');">CANCEL</a>
+                        <button type="submit" class="btn btn-default btn-primary">SEND</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div role="dialog" class="aboutScreen">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <a href="/" class="close" onclick="return move('indexScreen');">&times;</a>
+                    <h4 class="modal-title">About us...</h4>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        TODO
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <a href="/" class="btn btn-default btn-primary" id="aboutCancel" onclick="return move('indexScreen');">CANCEL</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@RenderBody()
+
+    <footer>
+        <div class="container">
+            <p class="navbar-text text-muted">(dot)Onion Searcher, an open source (contact us) anonymous search engine, tracker free, no-script friendly, ads free, dedicated to the Tor network.</p>
+        </div>
+    </footer>
+
+@if (WebSearcherApplication.IsRetailBuild())
+{
+    <script src="/r.js?@(WebSearcherApplication.GetVersion())"></script>
+}
+else
+{
+    <script src="/node_modules/jquery/dist/jquery.js?@(WebSearcherApplication.GetVersion())"></script>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.js?@(WebSearcherApplication.GetVersion())"></script>
+}
+    <script>
+        function move(destScreen)
+        {
+            if(destScreen != screen) switch (screen) {
+                case "addScreen":
+                    $(".notIndexScreen").hide();
+                    $(".addScreen").hide();
+                    document.getElementById("addUrl").value = "";
+                    break;
+                case "aboutScreen":
+                    $(".notIndexScreen").hide();
+                    $(".aboutScreen").hide();
+                    break;
+                case "contactScreen":
+                    $(".notIndexScreen").hide();
+                    $(".contactScreen").hide();
+                    document.getElementById("contactMsg").value = "";
+                    break;
+                case "resultScreen":
+                    $(".notIndexScreen").hide();
+                    $(".resultScreen").hide();
+                    document.getElementById("qNotIndex").value = "";
+                    break;
+                default: // indexScreen
+                    $(".indexScreen").hide();
+                    document.getElementById("qIndex").value = "";
+                    break;
+            }
+            screen = destScreen;
+            switch (screen) {
+                case "addScreen":
+                    $(".notIndexScreen").show();
+                    $(".addScreen").show();
+                    document.getElementById("addUrl").focus();
+                    break;
+                case "aboutScreen":
+                    $(".notIndexScreen").show();
+                    $(".aboutScreen").show();
+                    document.getElementById("aboutCancel").focus();
+                    break;
+                case "contactScreen":
+                    $(".notIndexScreen").show();
+                    $(".contactScreen").show();
+                    document.getElementById("contactMsg").focus();
+                    break;
+                case "resultScreen":
+                    $(".notIndexScreen").show();
+                    $(".resultScreen").show();
+                    document.getElementById("qNotIndex").focus();
+                    break;
+                default: // indexScreen
+                    $(".indexScreen").show();
+                    console.log($(".indexScreen"));
+                    document.getElementById("qIndex").focus();
+                    break;
+            }
+            return false;
+        }
+        $(function () {
+            move(screen);
+        });
+    </script>
+
+</body>
+</html>
