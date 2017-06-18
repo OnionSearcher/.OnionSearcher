@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
-using WebSearcherCommon.Properties;
 
 namespace WebSearcherCommon
 {
@@ -18,12 +17,11 @@ namespace WebSearcherCommon
             if (string.IsNullOrEmpty(absoluteHref))
                 throw new ArgumentNullException("absoluteHref");
 
-            absoluteHref = absoluteHref.Replace("&shy;", "").Replace("&#173;", "").Replace("</form>","");
+            absoluteHref = absoluteHref.Replace("&shy;", "").Replace("&#173;", "").Replace("</form>", "");
 
             int iPos = absoluteHref.IndexOf('#');
             if (iPos > 0)
                 absoluteHref = absoluteHref.Substring(0, iPos - 1); // remove # in urls
-
 
             // check if a match in Settings.Default.UrlMatchNotIndexed
             foreach (string str in urlStopper)
@@ -36,8 +34,15 @@ namespace WebSearcherCommon
             while (absoluteHref.EndsWith("?", StringComparison.Ordinal)) // remove trailing '?'
                 absoluteHref = absoluteHref.Substring(0, absoluteHref.Length - 1);
 
-            while (absoluteHref.EndsWith("/", StringComparison.Ordinal) && absoluteHref.IndexOf('/', 8) != absoluteHref.Length) // keep the 3 first (include the one after the domain name)
-                absoluteHref = absoluteHref.Substring(0, absoluteHref.Length - 1); // without / at the end, sometime several // can be seen, remove them....
+            if (absoluteHref.IndexOf('/', 8) > 0)
+            {
+                while (absoluteHref.EndsWith("/", StringComparison.Ordinal) && absoluteHref.IndexOf('/', 8) < (absoluteHref.Length - 1)) // keep the 3 first (include the one after the domain name)
+                    absoluteHref = absoluteHref.Substring(0, absoluteHref.Length - 1); // without / at the end, sometime several // can be seen, remove them....
+            }
+            else // urlStopper may have removed the last / of a domain root
+            {
+                absoluteHref += '/';
+            }
 
             return absoluteHref;
         }
@@ -49,7 +54,7 @@ namespace WebSearcherCommon
             return regexWhiteSpace.Replace(innerText, " ").Trim();
         }
 
-        internal static string GetHiddenService(string url)
+        public static string GetHiddenService(string url)
         {
             int i = url.IndexOf('/', 29);
             if (i > 0)
@@ -67,6 +72,9 @@ namespace WebSearcherCommon
             LastCrawle = DateTime.UtcNow;
         }
 
+        /// <summary>
+        /// Max lenght 37
+        /// </summary>
         public string HiddenService { get; set; }
         public string Url { get; set; }
 
@@ -76,8 +84,7 @@ namespace WebSearcherCommon
         public string Title { get; set; }
         public string InnerText { get; set; }
 
-        public HashSet<string> InnerLinks { get; set; }
-        public HashSet<string> OuterLinks { get; set; }
+        public HashSet<string> OuterHdLinks { get; set; }
 
         public DateTimeOffset FirstCrawle { get; set; }
         public DateTimeOffset LastCrawle { get; set; }

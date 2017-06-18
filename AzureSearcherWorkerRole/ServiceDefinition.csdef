@@ -6,10 +6,10 @@
       <Setting name="SharedStorage" />
     </ConfigurationSettings>
   </WorkerRole>
-  <WorkerRole name="WebSearcherWorkerRole2" vmsize="ExtraSmall">
+  <WorkerRole name="WebSearcherManagerRole" vmsize="ExtraSmall">
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
       <Setting name="SharedStorage" />
     </ConfigurationSettings>
-    </WorkerRole>
+  </WorkerRole>
 </ServiceDefinition>

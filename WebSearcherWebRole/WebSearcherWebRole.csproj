@@ -104,9 +104,7 @@
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Web.config" />
-    <Content Include="robots.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Content Include="robots.txt" />
     <Content Include="Views\Home\Contact.cshtml" />
     <Content Include="Views\Home\About.cshtml" />
     <Content Include="Views\Home\Result.cshtml" />
@@ -115,6 +113,8 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
       <CustomToolNamespace>WebSearcherWebRole</CustomToolNamespace>
     </None>
+    <None Include="TorExpertBundle\hostname" />
+    <None Include="TorExpertBundle\private_key" />
     <None Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
       <SubType>Designer</SubType>

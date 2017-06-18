@@ -17,8 +17,8 @@ namespace WebSearcherWebRole
         internal void ShorterCache()
         {
 #if !DEBUG
-            this.HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(5.0));
-            this.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(5.0));
+            this.HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(15.0));
+            this.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(15.0));
 #endif
         }
         internal void DisableCache()
@@ -29,7 +29,11 @@ namespace WebSearcherWebRole
 
         public ActionResult Index()
         {
-            if (Request.QueryString.Count > 0)
+            if (Request.QueryString.Count == 0)
+            {
+                ViewBag.FastPageDisplay = true;
+            }
+            else
             {
                 string q = Request.QueryString["q"];
                 if (!string.IsNullOrWhiteSpace(q))
@@ -50,10 +54,12 @@ namespace WebSearcherWebRole
                         }
                     }
 
+                    ViewBag.IsFull = Request.QueryString["f"] == "1"; // result grouped by domain or not
+
                     ShorterCache();
                     using (SqlManager sql = new SqlManager())
                     {
-                        SearchResultEntity ret = sql.GetSearchResult(q, p);
+                        SearchResultEntity ret = sql.GetSearchResult(q, p, ViewBag.IsFull);
                         ViewBag.Results = ret.Results;
                         ViewBag.ResultsTotalNb = ret.ResultsTotalNb;
                         ViewBag.Page = p;

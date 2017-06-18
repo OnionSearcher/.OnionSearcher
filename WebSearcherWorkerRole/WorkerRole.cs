@@ -17,14 +17,12 @@ namespace WebSearcherWorkerRole
 
         public override bool OnStart()
         {
-            // Set the maximum number of concurrent connections
-            ServicePointManager.DefaultConnectionLimit = 64; // 2 storage + webclient + ??
-
             bool result = base.OnStart();
 
             Trace.TraceInformation("WorkerRole is starting");
 
-            // ServicePointManager.ServerCertificateValidationCallback += delegate (object sender, X509Certificate certificate,X509Chain chain,SslPolicyErrors sslPolicyErrors){return true;}; --> app.config checkCertificateName checkCertificateRevocationList
+            // Set the maximum number of concurrent connections
+            ServicePointManager.DefaultConnectionLimit = 512;
 
             return result && TorManager.Start();
         }
@@ -50,24 +48,10 @@ namespace WebSearcherWorkerRole
         {
             try
             {
-                if (!await StorageManager.HasCrawleRequestValueAsync(cancellationToken))
-                {
-                    foreach (string url in Settings.Default.FirstOnion)
-                    {
-                        await StorageManager.StoreCrawleRequestAsync(url, cancellationToken);
-                    }
-                    using (SqlManager sql = new SqlManager())
-                    {
-                        foreach (string url in await sql.GetHiddenServicesListAsync(cancellationToken))
-                        {
-                            await StorageManager.StoreCrawleRequestAsync(url, cancellationToken);
-                        }
-                    }
-                }
-
                 await TorManager.WaitStartedAsync(cancellationToken);
 
                 taskPool = new List<Task>(Settings.Default.NbCrawlersPerInstance);
+                
                 for (int i = 0; i < taskPool.Capacity; i++)
                     taskPool.Add(null);
 
@@ -76,7 +60,7 @@ namespace WebSearcherWorkerRole
                     // tor check
                     if (!TorManager.IsProcessOk())
                     {
-                        Trace.TraceInformation("WorkerRole : Tor KO, restart it");
+                        Trace.TraceWarning("WorkerRole : Tor KO, restart it");
                         disposeSubTask(); // stop sending request
                         TorManager.Stop();
                         await Task.Delay(1000, cancellationToken);
@@ -98,16 +82,13 @@ namespace WebSearcherWorkerRole
                         }
                         if (taskPool[i] == null && !cancellationToken.IsCancellationRequested)
                         {
-                            taskPool[i] = Task.Run(() => { CrawlerManager.RunAsync(cancellationToken).Wait(); }, cancellationToken);
+                            taskPool[i] = Task.Run(() => { CrawlerManager.RunAsync(cancellationToken).Wait(cancellationToken); }, cancellationToken);
                         }
                     }
-
-#if DEBUG
-                    await Task.Delay(20000, cancellationToken);
-#else
+                    
                     await Task.Delay(60000, cancellationToken);
-#endif
                 }
+                Trace.TraceInformation("WorkerRole will wait for a restart");
             }
             catch (TaskCanceledException) { }
             catch (Exception ex)

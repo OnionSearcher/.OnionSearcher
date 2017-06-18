@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace WebSearcherWorkerRole2 {
+namespace WebSearcherManagerRole {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -25,7 +25,7 @@ namespace WebSearcherWorkerRole2 {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:10:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:15:00")]
         public global::System.TimeSpan ComputeIndexedPagesTaskDelay {
             get {
                 return ((global::System.TimeSpan)(this["ComputeIndexedPagesTaskDelay"]));
@@ -43,7 +43,7 @@ namespace WebSearcherWorkerRole2 {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:15:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:05:00")]
         public global::System.TimeSpan UpdatePageRankTaskDelay {
             get {
                 return ((global::System.TimeSpan)(this["UpdatePageRankTaskDelay"]));
@@ -70,10 +70,28 @@ namespace WebSearcherWorkerRole2 {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("12:00:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1.00:00:00")]
         public global::System.TimeSpan HDRootRescanDelay {
             get {
                 return ((global::System.TimeSpan)(this["HDRootRescanDelay"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://toset.onion/")]
+        public string FrontHref {
+            get {
+                return ((string)(this["FrontHref"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
+        public global::System.TimeSpan FrontHrefCheckDelay {
+            get {
+                return ((global::System.TimeSpan)(this["FrontHrefCheckDelay"]));
             }
         }
     }

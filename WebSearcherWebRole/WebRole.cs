@@ -18,7 +18,7 @@ namespace WebSearcherWebRole
             // Set the maximum number of concurrent connections
             ServicePointManager.DefaultConnectionLimit = 1024;
 
-            // TOFIX : can t manage the Server header Microsoft-HTTPAPI/2.0" from http response ...
+            // TOFIX : can t remove the Server header Microsoft-HTTPAPI/2.0" from low level http response ...
             //string errRegistry = null;
             //try
             //{
@@ -27,9 +27,6 @@ namespace WebSearcherWebRole
             //catch (Exception ex)
             //{
             //    errRegistry = ex.GetBaseException().ToString();
-#if DEBUG
-            //    if (Debugger.IsAttached) { Debugger.Break(); }
-#endif
             //}
 
             bool result = base.OnStart(); // will init azure trace
@@ -63,7 +60,7 @@ namespace WebSearcherWebRole
                     // tor check
                     if (!TorManager.IsProcessOk())
                     {
-                        Trace.TraceInformation("Tor KO, restart it");
+                        Trace.TraceWarning("WebRole : Tor KO, restart it");
                         TorManager.Stop();
                         await Task.Delay(1000, cancellationToken);
                         if (!cancellationToken.IsCancellationRequested)
@@ -75,6 +72,7 @@ namespace WebSearcherWebRole
                     }
                     await Task.Delay(20000, cancellationToken);
                 }
+                Trace.TraceInformation("WebRole will wait for a restart");
             }
             catch (TaskCanceledException) { }
             catch (Exception ex)

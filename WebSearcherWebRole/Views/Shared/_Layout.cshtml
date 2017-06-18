@@ -7,7 +7,12 @@
     <title>@ViewBag.TitlePrefix .Onion Searcher</title>
 @if (WebSearcherApplication.IsRetailBuild())
 {
-    <link type="text/css" rel="stylesheet" href="/r.css?@(WebSearcherApplication.GetVersion())" />
+    if(ViewBag.FastPageDisplay == true)
+    {<style>
+@Html.Raw(File.ReadAllText(Server.MapPath("~/r.css")))
+</style>}
+    else
+    {<link type="text/css" rel="stylesheet" href="/r.css?@(WebSearcherApplication.GetVersion())" />}
 }
 else
 {
@@ -63,6 +68,10 @@ else
             width: 100%;
         }
 
+        .mb16{
+            margin-bottom:16px;
+        }
+
         h1 {
             font-family: Calibri, "Helvetica Neue", Helvetica, Arial, sans-serif;
             font-weight: bold;
@@ -80,13 +89,25 @@ else
         .navbar-brand {
             font-family: Calibri, "Helvetica Neue", Helvetica, Arial, sans-serif;
             letter-spacing: -1px;
-            font-size: 22px;
+            font-size: 22px !important;
             line-height: 18px;
         }
-
         @@media screen and (min-width: 768px) {
             .jumbotron h1 {
                 font-size: 52px;
+            }
+            #qNotIndex {
+                width: 220px;
+            }
+        }
+        @@media screen and (min-width: 992px) {
+            #qNotIndex {
+                width: 360px;
+            }
+        }
+        @@media screen and (min-width: 1200px) {
+            #qNotIndex {
+                width: 480px;
             }
         }
 
@@ -95,7 +116,6 @@ else
                 font-size: 24px;
             }
         }
-
     </style>
 
 </head>
@@ -137,7 +157,7 @@ else
                         <div class="input-group">
                             <input type="text" class="form-control" placeholder="Search for..." name="q" id="qNotIndex" maxlength="64" value="@ViewBag.Research" />
                             <span class="input-group-btn">
-                                <button class="btn btn-default" type="submit">🔍</button>
+                                <button class="btn btn-default btn-primary" type="submit">SEARCH</button>
                             </span>
                         </div>
                     </div>
@@ -178,7 +198,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     <div class="input-group input-group-lg">
                         <input type="text" class="form-control" name="q" id="qIndex" placeholder="Search hidden service for..." maxlength="64"/>
                         <span class="input-group-btn">
-                            <button class="btn btn-default btn-primary" type="submit">🔍</button>
+                            <button class="btn btn-default btn-primary" type="submit">SEARCH</button>
                         </span>
                     </div>
                 </div>
@@ -202,7 +222,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     </div>
                     <div class="modal-footer">
                         <a href="/" class="btn btn-default" onclick="return move('indexScreen');">CANCEL</a>
-                        <button type="submit" class="btn btn-default btn-primary">ADD</button>
+                        <button type="submit" class="btn btn-default btn-info">ADD</button>
                     </div>
                 </div>
             </div>
@@ -224,7 +244,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     </div>
                     <div class="modal-footer">
                         <a href="/" class="btn btn-default" onclick="return move('indexScreen');">CANCEL</a>
-                        <button type="submit" class="btn btn-default btn-primary">SEND</button>
+                        <button type="submit" class="btn btn-default btn-info">SEND</button>
                     </div>
                 </div>
             </div>
@@ -236,7 +256,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
             <div class="modal-content">
                 <div class="modal-header">
                     <a href="/" class="close" onclick="return move('indexScreen');">&times;</a>
-                    <h4 class="modal-title">What is .Onion Searcher ?</h4>
+                    <h4 class="modal-title">What is .Onion Searcher <small>v@(WebSearcherApplication.GetVersion())</small> ?</h4>
                 </div>
                 <div class="modal-body">
                     <p class="container">
@@ -256,7 +276,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     </p>
                 </div>
                 <div class="modal-footer">
-                    <a href="/" class="btn btn-default btn-primary" id="aboutCancel" onclick="return move('indexScreen');">CANCEL</a>
+                    <a href="/" class="btn btn-default btn-info" id="aboutCancel" onclick="return move('indexScreen');">CANCEL</a>
                 </div>
             </div>
         </div>
@@ -298,6 +318,7 @@ else
                     document.getElementById("contactMsg").value = "";
                     break;
                 case "resultScreen":
+                    $("footer").show();
                     $(".notIndexScreen").hide();
                     $(".resultScreen").hide();
                     document.getElementById("qNotIndex").value = "";
@@ -325,13 +346,13 @@ else
                     document.getElementById("contactMsg").focus();
                     break;
                 case "resultScreen":
+                    $("footer").hide();
                     $(".notIndexScreen").show();
                     $(".resultScreen").show();
                     document.getElementById("qNotIndex").focus();
                     break;
                 default: // indexScreen
                     $(".indexScreen").show();
-                    console.log($(".indexScreen"));
                     document.getElementById("qIndex").focus();
                     break;
             }

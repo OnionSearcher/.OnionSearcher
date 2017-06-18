@@ -25,8 +25,8 @@ namespace WebSearcherWorkerRole
                     {
                         if (!(await CrawleOneAsync(url, cancellationToken)))
                         {
-                            // fail requeue the URL
-                            await StorageManager.StoreCrawleRequestAsync(url, cancellationToken);
+                            // fail requeue the URL en P5
+                            await StorageManager.StoreErrorCrawleRequestAsync(url, cancellationToken);
                         }
                     }
                     else // empty queue
@@ -48,6 +48,24 @@ namespace WebSearcherWorkerRole
 #endif
             }
         }
+
+        private static char[] forbiddenInHd = { '&', '\\', '\'', '\"', '\0', '\b', '\n', '\r', '\t', (char)26, '%', '_' };
+
+        private static object concurrentHashSetLock = new object();
+        /// <summary>
+        /// Avoid to push several time the same URL to the queue during the lifetime of the worker ~1 h (see settings)
+        /// </summary>
+        private static HashSet<string> concurrentHashSet = new HashSet<string>();
+        internal static void SafeAddConcurrentHashSet(string url)
+        {
+            lock (concurrentHashSetLock)
+            {
+                if (!concurrentHashSet.Contains(url))
+                {
+                    concurrentHashSet.Add(url);
+                }
+            }
+        }
         
         internal static async Task<bool> CrawleOneAsync(string url, CancellationToken cancellationToken)
         {
@@ -60,7 +78,7 @@ namespace WebSearcherWorkerRole
                 using (SqlManager sql = new SqlManager())
                 {
                     // last scan date ?
-                    if (!await sql.CheckIfCanCrawlePageAsync(url, cancellationToken))
+                    if (!await sql.CheckIfCanCrawlePageAsync(url, page.HiddenService, cancellationToken))
                     {
                         return true; // don't refresh !
                     }
@@ -70,23 +88,45 @@ namespace WebSearcherWorkerRole
                     {
                         using (ProxyManager proxy = new ProxyManager())
                         {
-                            rawHtml = await proxy.DownloadStringTaskAsync(uriOrig);
+                            rawHtml = await proxy.DownloadStringTaskAsync(uriOrig); // TO BIZ DON't ALLOW binary data !!
                         }
                     }
                     catch (WebException ex)
                     {
-                        HttpWebResponse err = ex.Response as HttpWebResponse;
-                        if (err != null)
+                        bool isRetry = true;
+                        if (ex.Status != WebExceptionStatus.RequestCanceled)
                         {
-                            page.InnerText = err.StatusDescription;
+                            if (ex.Response is HttpWebResponse err)
+                            {
+                                if (err.StatusCode != HttpStatusCode.NotFound)
+                                {
+                                    page.InnerText = err.StatusDescription; // won't be saved by PageInsertOrUpdateKo anaway...
+                                }
+                                else if (url != page.HiddenService) // 404 cleanup execpt domain root (who replied obviously)
+                                {
+                                    isRetry = false;
+                                }
+                            }
+                            else
+                            {
+                                Trace.TraceWarning("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Error " + ex.GetBaseException().Message);
+                            }
+                        }
+                        else // raise by ProxyManager_DownloadProgressChanged
+                        {
+                            Trace.TraceInformation("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Cancelled");
+                            isRetry = false;
+                        }
+                        if(isRetry)
+                        {
+                            await sql.PageInsertOrUpdateKo(page, cancellationToken);
+                            return false;
                         }
                         else
                         {
-                            Trace.TraceWarning("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Error " + ex.GetBaseException().Message);
+                            await sql.UrlPurge(url, cancellationToken);
+                            return true; // looks like an OK for the manager : he won't retry
                         }
-
-                        await sql.PageInsertOrUpdateKo(page, cancellationToken); // only used for follow the connection issue with the host, not crawler inernal issue
-                        return false;
                     }
                     
                     HtmlDocument htmlDoc = new HtmlDocument();
@@ -112,10 +152,10 @@ namespace WebSearcherWorkerRole
                     else
                         page.InnerText = string.Empty; // null will raise an exception on the sql proc call
                     htmlNode2 = null;
-                    
+
                     // <A href digest
-                    page.InnerLinks = new HashSet<string>();
-                    page.OuterLinks = new HashSet<string>();
+                    HashSet<string>  innerLinks = new HashSet<string>();
+                    HashSet<string>  outerLinks = new HashSet<string>();
                     foreach (HtmlNode htmlNode in htmlDoc.DocumentNode.Descendants("a"))
                     {
                         if (htmlNode.Attributes.Contains("href") && !cancellationToken.IsCancellationRequested)
@@ -129,16 +169,22 @@ namespace WebSearcherWorkerRole
                                 {
                                     string str = uriResult.ToString();
                                     str = PageEntity.NormalizeUrl(str);
-                                    
+
                                     if (uriResult.DnsSafeHost != uriOrig.DnsSafeHost)
                                     {
-                                        if (!page.OuterLinks.Contains(str))
-                                            page.OuterLinks.Add(str);
+                                        if (!outerLinks.Contains(str) && !concurrentHashSet.Contains(str))
+                                        {
+                                            outerLinks.Add(str);
+                                            SafeAddConcurrentHashSet(str);
+                                        }
                                     }
                                     else
                                     {
-                                        if (!page.InnerLinks.Contains(str))
-                                            page.InnerLinks.Add(str);
+                                        if (!innerLinks.Contains(str) && !concurrentHashSet.Contains(str))
+                                        {
+                                            innerLinks.Add(str);
+                                            SafeAddConcurrentHashSet(str);
+                                        }
                                     }
                                 }
                             }
@@ -148,9 +194,12 @@ namespace WebSearcherWorkerRole
                                 {
                                     string str = uriResult.ToString();
                                     str = PageEntity.NormalizeUrl(str);
-                                    
-                                    if (!page.InnerLinks.Contains(str))
-                                        page.InnerLinks.Add(str);
+
+                                    if (!innerLinks.Contains(str) && !concurrentHashSet.Contains(str))
+                                    {
+                                        innerLinks.Add(str);
+                                        SafeAddConcurrentHashSet(str);
+                                    }
                                 }
                             }
                         }
@@ -158,23 +207,41 @@ namespace WebSearcherWorkerRole
                     htmlDoc = null;
 
                     // finish page object before save
-                    if (page.InnerLinks.Contains(page.Url))
-                        page.InnerLinks.Remove(page.Url); // remove self reference (orinaly with #)
+                    if (innerLinks.Contains(page.Url))
+                        innerLinks.Remove(page.Url);
+                    if (innerLinks.Contains(page.HiddenService))
+                        innerLinks.Remove(page.HiddenService);
 
-                    await sql.PageInsertOrUpdateOk(page, cancellationToken);
-
+                    page.OuterHdLinks = new HashSet<string>();
                     // Ask to follow
-                    foreach (string str in page.OuterLinks)
+                    foreach (string str in outerLinks)
                     {
-                        if (!cancellationToken.IsCancellationRequested && await sql.CheckIfCanCrawlePageAsync(str, cancellationToken))
-                            await StorageManager.StoreCrawleRequestAsync(str, cancellationToken);
+                        string hd = PageEntity.GetHiddenService(str);
+                        if (!cancellationToken.IsCancellationRequested && await sql.CheckIfCanCrawlePageAsync(str, hd, cancellationToken))
+                            await StorageManager.StoreOuterCrawleRequestAsync(str, (hd == str), cancellationToken);
+                        if (!page.OuterHdLinks.Contains(hd))
+                        {    // basic check for sql injection
+                            if (hd.Length <= 37 && hd.IndexOfAny(forbiddenInHd) == -1)
+                                page.OuterHdLinks.Add(hd);
+                            else
+                            {
+                                Trace.TraceWarning("CrawlerManager.CrawleOneAsync Strange HD outer link from " + url + " : " + hd);
+#if DEBUG
+                                if (Debugger.IsAttached) { Debugger.Break(); }
+#endif
+                            }
+                        }
                     }
-
-                    foreach (string str in page.InnerLinks)
+                    outerLinks = null;
+                    bool isLinkFromRoot = (page.HiddenService == page.Url);
+                    foreach (string str in innerLinks)
                     {
-                        if (!cancellationToken.IsCancellationRequested && await sql.CheckIfCanCrawlePageAsync(str, cancellationToken))
-                            await StorageManager.StoreCrawleRequestAsync(str, cancellationToken);
+                        if (!cancellationToken.IsCancellationRequested && await sql.CheckIfCanCrawlePageAsync(str, page.HiddenService, cancellationToken))
+                            await StorageManager.StoreInnerCrawleRequestAsync(str, isLinkFromRoot, cancellationToken);
                     }
+                    innerLinks = null;
+                    
+                    await sql.PageInsertOrUpdateOk(page, cancellationToken);
                 }
 
                 page = null;
@@ -185,7 +252,7 @@ namespace WebSearcherWorkerRole
             {
                 Trace.TraceError("CrawlerManager.CrawleOneAsync Exception for " + url + " : " + ex.GetBaseException().ToString());
 #if DEBUG
-                if (Debugger.IsAttached) { Debugger.Break(); }
+                if (Debugger.IsAttached && !ex.Message.Contains("Timeout") & !ex.Message.Contains("A transport-level error has occurred")) { Debugger.Break(); }
 #endif
                 return false;
             }

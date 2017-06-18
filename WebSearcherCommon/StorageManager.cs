@@ -25,7 +25,7 @@ namespace WebSearcherCommon
             byte[] plainTextBytes = Encoding.UTF8.GetBytes(plainText);
             return Convert.ToBase64String(plainTextBytes);
         }
-        
+
         #region Synchrone for Web front
 
         private static readonly ConcurrentQueue<DailyTableEntityClass> queueHistoSearch = new ConcurrentQueue<DailyTableEntityClass>();
@@ -93,15 +93,16 @@ namespace WebSearcherCommon
                     if (!cancellationToken.IsCancellationRequested)
                     {
                         string url;
-                        CloudQueue cloudQueue = await GetCrawlerRequestAsync(cancellationToken);
                         using (SqlManager sql = new SqlManager())
                         {
                             while (queueCrawlerRequest.TryDequeue(out url) && !cancellationToken.IsCancellationRequested)
                             {
-                                PageEntity.NormalizeUrl(url);
-                                if (await sql.CheckIfCanCrawlePageAsync(url, cancellationToken))
+                                url = PageEntity.NormalizeUrl(url);
+                                string hd = PageEntity.GetHiddenService(url);
+
+                                if (await sql.CheckIfCanCrawlePageAsync(url, hd, cancellationToken))
                                 {
-                                    await cloudQueue.AddMessageAsync(new CloudQueueMessage(url), cancellationToken);
+                                    await StoreOuterCrawleRequestAsync(url, (hd == url), cancellationToken);
                                 }
                             }
                         }
@@ -109,7 +110,7 @@ namespace WebSearcherCommon
 #if DEBUG
                     Thread.Sleep(5000);
 #else
-                    Thread.Sleep(60000);
+                    Thread.Sleep(30000);
 #endif
                 }
                 catch (Exception ex)
@@ -122,12 +123,12 @@ namespace WebSearcherCommon
             }
         }
 
-
-        public static void Contact(string msg)
-        {
-            CloudTable ct = GetContactsTableAsync(new CancellationToken()).Result;
-            ct.Execute(TableOperation.Insert(new DailyTableEntityClass(msg)));
-        }
+        // If require to debug WebRole itself
+        //public static void Contact(string msg)
+        //{
+        //    CloudTable ct = GetContactsTableAsync(new CancellationToken()).Result;
+        //    ct.Execute(TableOperation.Insert(new DailyTableEntityClass(msg)));
+        //}
 
         #endregion Synchrone for Web front
 
@@ -215,15 +216,70 @@ namespace WebSearcherCommon
             return _queueClient;
         }
 
-        static private CloudQueue _crawlerRequest;
-        static internal async Task<CloudQueue> GetCrawlerRequestAsync(CancellationToken cancellationToken)
+        static private CloudQueue _p1CrawlerRequestP1;
+        /// <summary>
+        /// Hiden Service root
+        /// </summary>
+        static internal async Task<CloudQueue> GetP1CrawlerRequestAsync(CancellationToken cancellationToken)
         {
-            if (_crawlerRequest == null)
+            if (_p1CrawlerRequestP1 == null)
             {
-                _crawlerRequest = GetQueueClient().GetQueueReference("crawlerrequests");    // https://coderwall.com/p/g2xeua/gotcha-windows-azure-message-queue-400-bad-request
-                await _crawlerRequest.CreateIfNotExistsAsync(cancellationToken);
+                _p1CrawlerRequestP1 = GetQueueClient().GetQueueReference("p1crawlerrequests");    // https://coderwall.com/p/g2xeua/gotcha-windows-azure-message-queue-400-bad-request
+                await _p1CrawlerRequestP1.CreateIfNotExistsAsync(cancellationToken);
             }
-            return _crawlerRequest;
+            return _p1CrawlerRequestP1;
+        }
+        static private CloudQueue _p2CrawlerRequest;
+        /// <summary>
+        /// Outer link to a page refered by another Hidden Service
+        /// </summary>
+        static internal async Task<CloudQueue> GetP2CrawlerRequestAsync(CancellationToken cancellationToken)
+        {
+            if (_p2CrawlerRequest == null)
+            {
+                _p2CrawlerRequest = GetQueueClient().GetQueueReference("p2crawlerrequests");    // https://coderwall.com/p/g2xeua/gotcha-windows-azure-message-queue-400-bad-request
+                await _p2CrawlerRequest.CreateIfNotExistsAsync(cancellationToken);
+            }
+            return _p2CrawlerRequest;
+        }
+        static private CloudQueue _p3CrawlerRequest;
+        /// <summary>
+        /// Inner link from the root of the hidden service
+        /// </summary>
+        static internal async Task<CloudQueue> GetP3CrawlerRequestAsync(CancellationToken cancellationToken)
+        {
+            if (_p3CrawlerRequest == null)
+            {
+                _p3CrawlerRequest = GetQueueClient().GetQueueReference("p3crawlerrequests");    // https://coderwall.com/p/g2xeua/gotcha-windows-azure-message-queue-400-bad-request
+                await _p3CrawlerRequest.CreateIfNotExistsAsync(cancellationToken);
+            }
+            return _p3CrawlerRequest;
+        }
+        static private CloudQueue _p4CrawlerRequest;
+        /// <summary>
+        /// Inner link from another lambda page
+        /// </summary>
+        static internal async Task<CloudQueue> GetP4CrawlerRequestAsync(CancellationToken cancellationToken)
+        {
+            if (_p4CrawlerRequest == null)
+            {
+                _p4CrawlerRequest = GetQueueClient().GetQueueReference("p4crawlerrequests");    // https://coderwall.com/p/g2xeua/gotcha-windows-azure-message-queue-400-bad-request
+                await _p4CrawlerRequest.CreateIfNotExistsAsync(cancellationToken);
+            }
+            return _p4CrawlerRequest;
+        }
+        static private CloudQueue _p5CrawlerRequest;
+        /// <summary>
+        /// Error pages
+        /// </summary>
+        static internal async Task<CloudQueue> GetP5CrawlerRequestAsync(CancellationToken cancellationToken)
+        {
+            if (_p5CrawlerRequest == null)
+            {
+                _p5CrawlerRequest = GetQueueClient().GetQueueReference("p5crawlerrequests");    // https://coderwall.com/p/g2xeua/gotcha-windows-azure-message-queue-500-bad-request
+                await _p5CrawlerRequest.CreateIfNotExistsAsync(cancellationToken);
+            }
+            return _p5CrawlerRequest;
         }
 
         #endregion Queues
@@ -231,38 +287,72 @@ namespace WebSearcherCommon
         #endregion ASynchrone for internal
 
         #region ASynchrone for worker
-
-        static public async Task<bool> HasCrawleRequestValueAsync(CancellationToken cancellationToken)
+        
+        /// <summary>
+        /// Priority 1 for root, else 2
+        /// </summary>
+        static public async Task StoreOuterCrawleRequestAsync(string url, bool isHiddenServiceRoot, CancellationToken cancellationToken)
         {
             try
             {
-                CloudQueue cloudQueue = await GetCrawlerRequestAsync(cancellationToken);
-                await cloudQueue.FetchAttributesAsync(cancellationToken); // in order to compute cloudQueue.ApproximateMessageCount
-                int? i = cloudQueue.ApproximateMessageCount;
-                Trace.TraceInformation("StorageManager.HasCrawleRequestValueAsync : CrawlerRequestQueue.ApproximateMessageCount = " + (i ?? 0));
-                return i.HasValue && i.Value > 0;
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError("StorageManager.HasCrawleRequestValueAsync Exception : " + ex.GetBaseException().ToString());
-#if DEBUG
-                if (Debugger.IsAttached) { Debugger.Break(); }
-#endif
-                return true; // avoid creation of initial scope
-            }
-        }
+                CloudQueue cloudQueue;
+                if (isHiddenServiceRoot)
+                    cloudQueue = await GetP1CrawlerRequestAsync(cancellationToken);
+                else
+                    cloudQueue = await GetP2CrawlerRequestAsync(cancellationToken);
 
-        static public async Task StoreCrawleRequestAsync(string url, CancellationToken cancellationToken)
-        {
-            try
-            {
-                CloudQueue cloudQueue = await GetCrawlerRequestAsync(cancellationToken);
                 await cloudQueue.AddMessageAsync(new CloudQueueMessage(url), cancellationToken);
             }
             catch (TaskCanceledException) { }
             catch (Exception ex)
             {
-                Trace.TraceError("StorageManager.StoreCrawleRequestAsync Exception for " + url + " : " + ex.GetBaseException().ToString());
+                Trace.TraceError("StorageManager.StoreOuterCrawleRequestAsync Exception for " + url + " : " + ex.GetBaseException().ToString());
+#if DEBUG
+                if (Debugger.IsAttached) { Debugger.Break(); }
+#endif
+            }
+        }
+
+        private static readonly TimeSpan fastExpireMsg = TimeSpan.FromHours(4.0); // limit queue growing endlessly
+        /// <summary>
+        /// Priority 3 if refered from HD root, 4 else
+        /// </summary>
+        static public async Task StoreInnerCrawleRequestAsync(string url, bool isLinkedFromRoot, CancellationToken cancellationToken)
+        {
+            try
+            {
+                CloudQueue cloudQueue;
+                if (isLinkedFromRoot)
+                    cloudQueue = await GetP3CrawlerRequestAsync(cancellationToken);
+                else
+                    cloudQueue = await GetP4CrawlerRequestAsync(cancellationToken);
+                await cloudQueue.AddMessageAsync(new CloudQueueMessage(url), fastExpireMsg, null, null, null, cancellationToken);
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception ex)
+            {
+                Trace.TraceError("StorageManager.StoreInnerCrawleRequestAsync Exception for " + url + " : " + ex.GetBaseException().ToString());
+#if DEBUG
+                if (Debugger.IsAttached) { Debugger.Break(); }
+#endif
+            }
+        }
+        
+        /// <summary>
+        /// Priority 3 if refered from HD root, 4 else
+        /// </summary>
+        static public async Task StoreErrorCrawleRequestAsync(string url, CancellationToken cancellationToken)
+        {
+            try
+            {
+                CloudQueue cloudQueue;
+                cloudQueue = await GetP5CrawlerRequestAsync(cancellationToken);
+                await cloudQueue.AddMessageAsync(new CloudQueueMessage(url), fastExpireMsg, null, null, null, cancellationToken);
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception ex)
+            {
+                Trace.TraceError("StorageManager.StoreErrorCrawleRequestAsync Exception for " + url + " : " + ex.GetBaseException().ToString());
 #if DEBUG
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
@@ -273,8 +363,31 @@ namespace WebSearcherCommon
         {
             try
             {
-                CloudQueue cloudQueue = await GetCrawlerRequestAsync(cancellationToken);
-                CloudQueueMessage message = await cloudQueue.GetMessageAsync(cancellationToken);
+                CloudQueue cloudQueue;
+                CloudQueueMessage message;
+
+                cloudQueue = await GetP1CrawlerRequestAsync(cancellationToken);
+                message = await cloudQueue.GetMessageAsync(cancellationToken);
+                if (message == null)
+                {
+                    cloudQueue = await GetP2CrawlerRequestAsync(cancellationToken);
+                    message = await cloudQueue.GetMessageAsync(cancellationToken);
+                    if (message == null)
+                    {
+                        cloudQueue = await GetP3CrawlerRequestAsync(cancellationToken);
+                        message = await cloudQueue.GetMessageAsync(cancellationToken);
+                        if (message == null)
+                        {
+                            cloudQueue = await GetP4CrawlerRequestAsync(cancellationToken);
+                            message = await cloudQueue.GetMessageAsync(cancellationToken);
+                            if (message == null)
+                            {
+                                cloudQueue = await GetP5CrawlerRequestAsync(cancellationToken);
+                                message = await cloudQueue.GetMessageAsync(cancellationToken);
+                            }
+                        }
+                    }
+                }
                 if (message != null)
                 {
                     await cloudQueue.DeleteMessageAsync(message, cancellationToken);

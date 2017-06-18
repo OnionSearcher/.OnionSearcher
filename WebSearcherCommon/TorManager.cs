@@ -19,11 +19,18 @@ namespace WebSearcherCommon
 
                 if (e.Data.Contains("[warn]") && !e.Data.Contains(" is relative"))
                 {
-                    Trace.TraceWarning("TorManager : " + e.Data);
-                    // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
+                    if (e.Data.Contains("Fetching v2 rendezvous descriptor failed."))
+                    {
+                        Trace.TraceInformation("TorManager : " + e.Data); // just a dead onion
+                    }
+                    else
+                    {
+                        Trace.TraceWarning("TorManager : " + e.Data);
+                        // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
 #if DEBUG
-                    if (Debugger.IsAttached) { Debugger.Break(); } // sometime Tor stay up between debug session, remeber to kill him if required
+                        //if (Debugger.IsAttached) { Debugger.Break(); } // sometime Tor stay up between debug session, remeber to kill him if required
 #endif
+                    }
                 }
                 else if (e.Data.Contains("[err]"))
                 {
@@ -82,12 +89,14 @@ namespace WebSearcherCommon
                 KillTorIfRequired();
 
                 string basePath = AppDomain.CurrentDomain.BaseDirectory;
-                
+
+#if !DEBUG      // else DEBUG will publish and tanke the production .onion !
                 if (File.Exists(Path.Combine(basePath, @"TorExpertBundle\hostname"))) // copy keyfiles, need to be writen else the azure cloud service won't have the right for rewrite the file (don't kwow why Tor rewrite the same file...)
                 {
                     File.Copy(Path.Combine(basePath, @"TorExpertBundle\hostname"), Path.Combine(basePath, @"TorExpertBundle\Data\hostname"));
                     File.Copy(Path.Combine(basePath, @"TorExpertBundle\private_key"), Path.Combine(basePath, @"TorExpertBundle\Data\private_key"));
                 }
+#endif
 
                 torProcess = new Process()
                 {

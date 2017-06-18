@@ -1,14 +1,12 @@
-﻿
-
-<div class="resultScreen">
+﻿<div class="resultScreen">
     <div class="container row">
         <div class="col-sm-offset-1 col-sm-9">
         @if (ViewBag.ResultsTotalNb > 0)
         {
-            if (ViewBag.ResultsTotalNb > 1)
-            {<p class="text-muted">About @String.Format("{0:n0}", ViewBag.ResultsTotalNb) results<br /><br /></p>}
-            else
-            {<p class="text-muted">One lonely result... <br /><br /></p>}
+            <p class="text-muted mb16">
+            @(ViewBag.ResultsTotalNb > 1 ? "About "+String.Format("{0:n0}", ViewBag.ResultsTotalNb)+" results." : "One lonely result...")
+            Current results @(ViewBag.IsFull ? "aren't" :"are") filtered, you can <a href="/?@(ViewBag.IsFull ? "": "f=1&")q=@(ViewBag.ResearchUrlEncoded)">click here to change this</a>.
+            </p>
 
             foreach (PageResultEntity item in ViewBag.Results)
             {
@@ -40,22 +38,22 @@
                 <div class="row">
                     <nav aria-label="Page navigation" class="col-sm-offset-1 col-sm-6">
                         <ul class="pagination">
-                            <li @(ViewBag.Previous?"":"class=disabled")><a href="@(ViewBag.Previous ? "/?q="+ViewBag.ResearchUrlEncoded+"&amp;p="+(ViewBag.Page-1):"#")" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
-                            <li @(ViewBag.PageA!= ViewBag.Page ? "": "class=active")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.PageA)">@(ViewBag.PageA)</a></li>
-                            <li @(ViewBag.PageB!= ViewBag.Page ? "": "class=active")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.PageB)">@(ViewBag.PageB)</a></li>
+                            <li @(ViewBag.Previous?"":"class=disabled")><a href="@(ViewBag.Previous ? "/?"+(ViewBag.IsFull?"f=1&":"")+"p=" + (ViewBag.Page - 1)+"&q=" + ViewBag.ResearchUrlEncoded :"#")" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
+                            <li @(ViewBag.PageA!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")p=@(ViewBag.PageA)&q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageA)</a></li>
+                            <li @(ViewBag.PageB!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")p=@(ViewBag.PageB)&q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageB)</a></li>
                             @if (ViewBag.ResultsTotalNb > 20)
                             {
-                                <li @(ViewBag.PageC!= ViewBag.Page ? "": "class=active")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.PageC)">@(ViewBag.PageC)</a></li>
+                                <li @(ViewBag.PageC!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")p=@(ViewBag.PageC)&q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageC)</a></li>
                                 if (ViewBag.ResultsTotalNb > 30)
                                 {
-                                    <li @(ViewBag.PageD!= ViewBag.Page ? "": "class=active")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.PageD)">@(ViewBag.PageD)</a></li>
+                                    <li @(ViewBag.PageD!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")p=@(ViewBag.PageD)&q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageD)</a></li>
                                     if (ViewBag.ResultsTotalNb > 40)
                                     {
-                                        <li @(ViewBag.PageE!= ViewBag.Page ? "": "class=active")><a href="/?q=@ViewBag.ResearchUrlEncoded&amp;p=@(ViewBag.PageE)">@(ViewBag.PageE)</a></li>
+                                        <li @(ViewBag.PageE!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")p=@(ViewBag.PageE)&q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageE)</a></li>
                                     }
                                 }
                             }
-                            <li @(ViewBag.Next ? "":"class=disabled")><a href="@(ViewBag.Next ? "/?q="+ViewBag.ResearchUrlEncoded+"&amp;p="+(ViewBag.Page+1):"#")" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
+                            <li @(ViewBag.Next ? "":"class=disabled")><a href="@(ViewBag.Next ? "/?"+(ViewBag.IsFull?"f=1&":"")+"p="+(ViewBag.Page+1)+"&q="+ViewBag.ResearchUrlEncoded : "#")" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
                         </ul>
                     </nav>
                 </div>
