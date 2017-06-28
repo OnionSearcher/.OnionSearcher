@@ -12,27 +12,13 @@ namespace WebSearcherCommon
     public static class TorManager
     {
 
-        internal static void OutputHandler(object sender, DataReceivedEventArgs e)
+        private static void OutputHandler(object sender, DataReceivedEventArgs e)
         {
+
             if (!String.IsNullOrWhiteSpace(e.Data))
             {
 
-                if (e.Data.Contains("[warn]") && !e.Data.Contains(" is relative"))
-                {
-                    if (e.Data.Contains("Fetching v2 rendezvous descriptor failed."))
-                    {
-                        Trace.TraceInformation("TorManager : " + e.Data); // just a dead onion
-                    }
-                    else
-                    {
-                        Trace.TraceWarning("TorManager : " + e.Data);
-                        // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
-#if DEBUG
-                        //if (Debugger.IsAttached) { Debugger.Break(); } // sometime Tor stay up between debug session, remeber to kill him if required
-#endif
-                    }
-                }
-                else if (e.Data.Contains("[err]"))
+                if (e.Data.Contains("[err]"))
                 {
                     Trace.TraceError("TorManager : " + e.Data);
                     // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager : " + e.Data);
@@ -50,7 +36,7 @@ namespace WebSearcherCommon
             }
         }
 
-        internal static void ErrorOutputHandler(object sender, DataReceivedEventArgs e)
+        private static void ErrorOutputHandler(object sender, DataReceivedEventArgs e)
         {
             if (!String.IsNullOrWhiteSpace(e.Data))
             {
@@ -62,7 +48,7 @@ namespace WebSearcherCommon
             }
         }
 
-        static private Process torProcess;
+        private static Process torProcess;
         private static bool hasStarted;
 
         private static void KillTorIfRequired()
@@ -75,11 +61,11 @@ namespace WebSearcherCommon
             }
             catch (Exception ex)
             {
-                Trace.TraceError("TorManager.killTorIfRequired Exception : " + ex.GetBaseException().ToString());
+                Trace.TraceWarning("TorManager.killTorIfRequired Exception : " + ex.GetBaseException().Message);  // No right usualy, simple message to keep.
             }
         }
 
-        public static bool Start()
+        public static async Task StartAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -130,17 +116,14 @@ namespace WebSearcherCommon
 #endif
                 //return false;
             }
-            return true;
-        }
-        
-        public static async Task WaitStartedAsync(CancellationToken cancellationToken)
-        {
-            while (!cancellationToken.IsCancellationRequested && ! hasStarted)
+
+            // WaitStartedAsync
+            while (!cancellationToken.IsCancellationRequested && !hasStarted)
             {
                 await Task.Delay(100, cancellationToken);
             }
         }
-
+        
         public static void Stop()
         {
             try
@@ -155,27 +138,6 @@ namespace WebSearcherCommon
             catch (Exception ex)
             {
                 Trace.TraceError("TorManager.Stop Exception : " + ex.GetBaseException().ToString());
-#if DEBUG
-                if (Debugger.IsAttached) { Debugger.Break(); }
-#endif
-            }
-        }
-
-        public static void TraceHostname()
-        {
-            try
-            {
-                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TorExpertBundle\\Data\\hostname");
-                if (File.Exists(path))
-                {
-                    string hostname = File.ReadAllText(path).TrimEnd();
-                    Trace.TraceWarning("TorManager.TraceHostname : " + hostname); // check ouput console in debug emulator mode
-                }
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError("TorManager.TraceHostname Exception : " + ex.GetBaseException().ToString());
-                // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("TorManager.TraceHostname Exception : " + ex.GetBaseException().ToString());
 #if DEBUG
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif

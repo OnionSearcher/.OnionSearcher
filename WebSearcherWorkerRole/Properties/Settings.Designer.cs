@@ -25,15 +25,6 @@ namespace WebSearcherWorkerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("32")]
-        public short NbCrawlersPerInstance {
-            get {
-                return ((short)(this["NbCrawlersPerInstance"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
         public global::System.TimeSpan TimeBeforeRecycle {
             get {

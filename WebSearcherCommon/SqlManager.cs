@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +16,7 @@ namespace WebSearcherCommon
     {
         private const int maxSqlIndex = 450;
         private const int maxSqlText = 1 * 1024 * 1024;
-        
+
         public SqlManager()
         {
         }
@@ -71,8 +70,8 @@ namespace WebSearcherCommon
             if (!cancellationToken.IsCancellationRequested)
                 using (SqlCommand cmd = new SqlCommand("CanCrawle", conn))
                 {
-                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar).Value = url;
-                    cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar).Value = hiddenService;
+                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = url;
+                    cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar, 37).Value = hiddenService;
                     cmd.CommandType = CommandType.StoredProcedure;
 
                     SqlParameter outputRet = new SqlParameter("@ret", SqlDbType.SmallInt)
@@ -89,7 +88,7 @@ namespace WebSearcherCommon
             else
                 return false;
         }
-        
+
         #region WebSearcherWorkerRole
 
         public async Task PageInsertOrUpdateOk(PageEntity page, CancellationToken cancellationToken)
@@ -99,30 +98,36 @@ namespace WebSearcherCommon
             if (page.HiddenService.Length > maxSqlIndex) page.HiddenService = page.HiddenService.Substring(0, maxSqlIndex);
             if (page.Url.Length > maxSqlIndex) page.Url = page.Url.Substring(0, maxSqlIndex);
             if (page.Title.Length > maxSqlIndex) page.Title = page.Title.Substring(0, maxSqlIndex);
-            if (page.InnerText.Length > maxSqlText) page.InnerText = page.InnerText.Substring(0, maxSqlText);
             if (!cancellationToken.IsCancellationRequested)
-                using (SqlCommand cmd = new SqlCommand(@"MERGE Pages AS target USING (SELECT @HiddenService,@Url,@Title,@InnerText,@LastCrawle) AS source (HiddenService,Url,Title,InnerText,LastCrawle) ON (target.Url = source.Url)
-WHEN MATCHED THEN UPDATE SET HiddenService=source.HiddenService,Url=source.Url,Title=source.Title,InnerText=source.InnerText,LastCrawle=source.LastCrawle,CrawleError=NULL
-WHEN NOT MATCHED THEN INSERT (HiddenService,Url,Title,InnerText,FirstCrawle,LastCrawle) VALUES (source.HiddenService,source.Url,source.Title,source.InnerText,source.LastCrawle,source.LastCrawle);", conn))
+                using (SqlCommand cmd = new SqlCommand(@"MERGE Pages AS target USING (SELECT @HiddenService,@Url,@Title,@LastCrawle) AS source (HiddenService,Url,Title,LastCrawle) ON (target.Url = source.Url)
+WHEN MATCHED THEN UPDATE SET HiddenService=source.HiddenService,Url=source.Url,Title=source.Title,LastCrawle=source.LastCrawle,CrawleError=NULL
+WHEN NOT MATCHED THEN INSERT (HiddenService,Url,Title,FirstCrawle,LastCrawle) VALUES (source.HiddenService,source.Url,source.Title,source.LastCrawle,source.LastCrawle);", conn))
                 {
-                    cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar).Value = page.HiddenService;
-                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar).Value = page.Url;
-                    cmd.Parameters.Add("@Title", SqlDbType.NVarChar).Value = page.Title;
-                    cmd.Parameters.Add("@InnerText", SqlDbType.NVarChar).Value = page.InnerText;
+                    cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar, 37).Value = page.HiddenService;
+                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = page.Url;
+                    cmd.Parameters.Add("@Title", SqlDbType.NVarChar, 450).Value = page.Title;
                     cmd.Parameters.Add("@LastCrawle", SqlDbType.DateTimeOffset).Value = page.LastCrawle;
-                    // cmd.Parameters.Add("@InnerLinks", SqlDbType.NVarChar).Value = string.Join("\r\n", page.InnerLinks); // too much data to exploit
-                    // cmd.Parameters.Add("@OuterLinks", SqlDbType.NVarChar).Value = string.Join("\r\n", page.OuterLinks); // too much data to exploit
                     cmd.CommandType = CommandType.Text;
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
-            if (page.OuterHdLinks.Count > 0)
+            if (page.InnerText.Length > maxSqlText) page.InnerText = page.InnerText.Substring(0, maxSqlText);
+            if (!cancellationToken.IsCancellationRequested)
+                using (SqlCommand cmd = new SqlCommand("UPDATE Pages SET InnerText=@InnerText WHERE Url=@Url", conn))
+                {
+                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = page.Url;
+                    cmd.Parameters.Add("@InnerText", SqlDbType.NVarChar).Value = page.InnerText;
+                    cmd.CommandType = CommandType.Text;
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+
+            if (page.OuterHdLinks.Count > 0 && !cancellationToken.IsCancellationRequested)
             {
                 string sqlSelect = "SELECT @f,'" + string.Join("' UNION SELECT @f,'", page.OuterHdLinks) + "'"; // check SQL Injection before !
                 using (SqlCommand cmd = new SqlCommand(@"MERGE HiddenServiceLinks AS target USING (" + sqlSelect + @") AS source (HiddenService,HiddenServiceTarget) ON (target.HiddenService=source.HiddenService AND target.HiddenServiceTarget=source.HiddenServiceTarget)
 WHEN NOT MATCHED THEN INSERT (HiddenService,HiddenServiceTarget) VALUES (source.HiddenService,source.HiddenServiceTarget);", conn))
                 {
-                    cmd.Parameters.Add("@f", SqlDbType.NVarChar).Value = page.HiddenService;
+                    cmd.Parameters.Add("@f", SqlDbType.NVarChar, 37).Value = page.HiddenService;
                     cmd.CommandType = CommandType.Text;
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
@@ -162,20 +167,43 @@ WHEN NOT MATCHED THEN INSERT (Url,HtmlRaw) VALUES (source.Url,source.HtmlRaw);",
 WHEN MATCHED THEN UPDATE SET CrawleError=COALESCE(CrawleError,0)+1,LastCrawle=source.LastCrawle,Rank=CASE WHEN Rank IS NOT NULL THEN Rank/2.0 ELSE 0.0 END,RankDate=SYSDATETIMEOFFSET()
 WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleError,Rank,RankDate) VALUES (source.Url,source.LastCrawle,source.LastCrawle,source.HiddenService,1,0.0,SYSDATETIMEOFFSET());", conn)) // rank at 0 a new or half it if previously OK
                 {
-                    cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar).Value = page.HiddenService;
-                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar).Value = page.Url;
+                    cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar, 37).Value = page.HiddenService;
+                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = page.Url;
                     cmd.Parameters.Add("@LastCrawle", SqlDbType.DateTimeOffset).Value = page.LastCrawle;
                     cmd.CommandType = CommandType.Text;
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
         }
 
-        public async Task<IEnumerable<string>> GetHiddenServicesListAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<string>> GetHiddenServicesToCrawleAsync(CancellationToken cancellationToken)
         {
             await CheckOpenAsync(cancellationToken);
 
             if (!cancellationToken.IsCancellationRequested)
-                using (SqlCommand cmd = new SqlCommand("SELECT HiddenService FROM HiddenServices WITH (NOLOCK) ORDER BY Rank DESC", conn))
+                using (SqlCommand cmd = new SqlCommand("SELECT * FROM HiddenServicesToCrawle", conn))
+                {
+                    cmd.CommandType = CommandType.Text;
+
+                    List<string> ret = new List<string>();
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (reader.Read())
+                        {
+                            ret.Add(reader.GetString(0));
+                        }
+                    }
+                    return ret;
+                }
+            else
+                return null;
+        }
+
+        public async Task<IEnumerable<string>> GetPagesToCrawleAsync(CancellationToken cancellationToken)
+        {
+            await CheckOpenAsync(cancellationToken);
+
+            if (!cancellationToken.IsCancellationRequested)
+                using (SqlCommand cmd = new SqlCommand("SELECT * FROM PagesToCrawle", conn))
                 {
                     cmd.CommandType = CommandType.Text;
 
@@ -207,7 +235,7 @@ WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleErr
                 if (!cancellationToken.IsCancellationRequested && !string.IsNullOrWhiteSpace(str))
                     using (SqlCommand cmd = new SqlCommand("DELETE TOP (1000) FROM Pages WHERE Url LIKE @str", conn))
                     {
-                        cmd.Parameters.Add("@str", SqlDbType.NVarChar).Value = '%' + str + '%';
+                        cmd.Parameters.Add("@str", SqlDbType.NVarChar, 450).Value = '%' + str + '%';
                         cmd.CommandType = CommandType.Text;
                         await cmd.ExecuteNonQueryAsync(cancellationToken);
                     }
@@ -219,9 +247,9 @@ WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleErr
             await CheckOpenAsync(cancellationToken);
 
             if (!cancellationToken.IsCancellationRequested && !string.IsNullOrWhiteSpace(url))
-                using (SqlCommand cmd = new SqlCommand("DELETE TOP (1000) FROM Pages WHERE Url=@str", conn))
+                using (SqlCommand cmd = new SqlCommand("DELETE FROM Pages WHERE Url=@str", conn))
                 {
-                    cmd.Parameters.Add("@str", SqlDbType.NVarChar).Value = url;
+                    cmd.Parameters.Add("@str", SqlDbType.NVarChar, 450).Value = url;
                     cmd.CommandType = CommandType.Text;
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
@@ -262,14 +290,24 @@ WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleErr
                         InnerText = dr[2].ToString(),
                         CrawleError = (dr[3] as short?) > 0,
                         DaySinceLastCrawle = (int)dr[4],
-                        HourSinceLastCrawle = (int)dr[5]
+                        HourSinceLastCrawle = (int)dr[5],
+                        HiddenServiceMain = dr[6] as string
                     };
                     if (pe.Title.Length > 70)
                     {
                         pe.TitleToolTip = pe.Title;
                         pe.Title = pe.Title.Substring(0, 67).Replace("\"", "&quot;") + "...";
                     }
-                    if (pe.Url.Length > 115) // 120 may cause linebreak with tag
+                    if (pe.HiddenServiceMain != null) // We keep it only on root HD in DB, not needed for display
+                    {
+                        pe.HiddenServiceMain = pe.HiddenServiceMain.Substring(0, pe.Url.Length - 1);
+                        pe.HiddenServiceMainClick = "/?url=" + WebUtility.UrlEncode(pe.HiddenServiceMain);
+                    }
+                    if (pe.Url.EndsWith("/")) // We keep it only on root HD in DB, not needed for display
+                    {
+                        pe.Url = pe.Url.Substring(0, pe.Url.Length - 1);
+                    }
+                    else if (pe.Url.Length > 115) // 120 may cause linebreak with tag
                     {
                         pe.UrlToolTip = pe.Url;
                         pe.Url = pe.Url.Substring(0, 117).Replace("\"", "&quot;") + "...";
@@ -285,10 +323,33 @@ WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleErr
 
         #region WebSearcherManagerRole
 
+
+        public async Task<bool> MirrorsDetectAsync(CancellationToken cancellationToken)
+        {
+            await CheckOpenAsync(cancellationToken);
+
+            using (SqlCommand cmd = new SqlCommand("MirrorsDetectTask", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                SqlParameter outputRet = new SqlParameter("@ret", SqlDbType.SmallInt)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(outputRet);
+
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+                short? ret = outputRet.Value as short?;
+                return ret.HasValue ? (ret.Value == 1) : false;
+            }
+        }
+
+
         public async Task ComputeIndexedPagesAsync(CancellationToken cancellationToken)
         {
             await CheckOpenAsync(cancellationToken);
-            
+
             using (SqlCommand cmd = new SqlCommand("ComputeIndexedPagesTask", conn))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -389,7 +450,7 @@ WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleErr
         {
             Dispose(true);
         }
-#endregion
+        #endregion
     }
 
 }

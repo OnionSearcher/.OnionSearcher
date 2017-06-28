@@ -10,7 +10,6 @@ An open source, anonymous, no-script friendly, ads free, search engine dedicated
 - Ranking quality
 - UTF16 pages don't display correctly
 - Trace don't work for WebRole class (but the reel web trace are OK, juste the Azure service himself
-- Search StopList Tor & onion
 
 ## TODO
 

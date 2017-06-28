@@ -12,6 +12,7 @@
     <AssemblyName>AzureSearcherCrawlerRole</AssemblyName>
     <StartDevelopmentStorage>True</StartDevelopmentStorage>
     <Name>AzureSearcherWorkerRole</Name>
+    <UseWebProjectPorts>True</UseWebProjectPorts>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -38,7 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Profiles" />
-    <Folder Include="WebSearcherWorkerRole2Content\" />
+    <Folder Include="WebSearcherManagerRoleContent\" />
     <Folder Include="WebSearcherWorkerRoleContent" />
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.UI;
@@ -16,9 +17,13 @@ namespace WebSearcherWebRole
 
         internal void ShorterCache()
         {
-#if !DEBUG
-            this.HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(15.0));
-            this.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(15.0));
+#if DEBUG
+            this.HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(0.01));
+            this.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(0.01));
+#else
+            this.HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(60.0));
+            this.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(60.0));
+            
 #endif
         }
         internal void DisableCache()
@@ -29,6 +34,8 @@ namespace WebSearcherWebRole
 
         public ActionResult Index()
         {
+            Trace.TraceInformation("HomeController.Index : " + Request.RawUrl);
+
             if (Request.QueryString.Count == 0)
             {
                 ViewBag.FastPageDisplay = true;
@@ -41,8 +48,6 @@ namespace WebSearcherWebRole
                     ViewBag.Research = q;
                     ViewBag.ResearchUrlEncoded = Url.Encode(q);
                     ViewBag.TitlePrefix = q + " - ";
-
-                    StorageManager.EnqueueHistoSearch(q);
 
                     short p = 1;
                     if (!string.IsNullOrWhiteSpace(Request.QueryString["p"]))
@@ -110,13 +115,12 @@ namespace WebSearcherWebRole
                     q = Request.QueryString["url"];
                     if (!string.IsNullOrWhiteSpace(q))
                     {
-                        StorageManager.EnqueueHistoClick(q);
-
-                        DisableCache();
+                        ShorterCache();
                         return Redirect(q);
                     }
                     else
                     {
+                        // normal cache
                         q = Request.QueryString["msg"];
                         if (!string.IsNullOrWhiteSpace(q))
                         {
@@ -135,14 +139,16 @@ namespace WebSearcherWebRole
             }
             return View();
         }
-        
+
         public ActionResult Result()
         {
+            Trace.TraceInformation("HomeController.Result : " + Request.RawUrl);
             throw new NotImplementedException(); // managed by Index() in fact, just here to please MVC pattern
         }
 
         public ActionResult Add()
         {
+            Trace.TraceInformation("HomeController.Add : " + Request.RawUrl);
             ViewBag.TitlePrefix = "Add a hidden service to ";
 
             if (Request.Form.Count > 0)
@@ -161,7 +167,6 @@ namespace WebSearcherWebRole
                     if (q.Length < 256 && Uri.TryCreate(q, UriKind.Absolute, out Uri uriResult) && uriResult.IsTor())
                     {
                         StorageManager.EnqueueCrawlerRequest(uriResult.ToString());
-
                         return Redirect("/?msg=1");
                     }
                     else
@@ -173,9 +178,10 @@ namespace WebSearcherWebRole
 
             return View();
         }
-        
+
         public ActionResult Contact()
         {
+            Trace.TraceInformation("HomeController.Contact : " + Request.RawUrl);
             ViewBag.TitlePrefix = "Contact ";
 
             if (Request.Form.Count > 0)
@@ -205,6 +211,7 @@ namespace WebSearcherWebRole
 
         public ActionResult About()
         {
+            Trace.TraceInformation("HomeController.About : " + Request.RawUrl);
             ViewBag.TitlePrefix = "About ";
 
             return View();

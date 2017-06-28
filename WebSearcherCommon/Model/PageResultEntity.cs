@@ -7,7 +7,6 @@ namespace WebSearcherCommon
         public PageResultEntity() { }
 
         public string UrlClick { get; set; }
-
         public string Url { get; set; }
         public string UrlToolTip { get; set; }
 
@@ -19,8 +18,10 @@ namespace WebSearcherCommon
         public bool CrawleError { get; set; }
         
         public int DaySinceLastCrawle { get; set; }
-
         public int HourSinceLastCrawle { get; set; }
+        
+        public string HiddenServiceMain { get; set; }
+        public string HiddenServiceMainClick { get; set; }
         
         public override string ToString()
         {

@@ -82,9 +82,17 @@ else
         h6 {
             margin: -6px 0 0 0;
         }
-        h6 > .label {
+        .label {
             padding: 0 1px;
             margin-left: 8px;
+        }
+        .label.label-default {
+            margin-left: 0;
+            font-size: 12px;
+        }
+        .label.label-default > a {
+            color: #fff;
+            font-weight: normal;
         }
         .navbar-brand {
             font-family: Calibri, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -261,18 +269,26 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                 <div class="modal-body">
                     <p class="container">
                         <h4>It's an serch engine for Tor Hidden Services.</h4>
+                        <h5><i>Is there something else than dark markets and porns on Tor ? Let's seek !</i></h5>
+
                         <h4>Anonymous</h4>
                         <ul>
                             <li>No user trackers (<i>cookie or worse</i>)</li>
-                            <li>The few collected data in order to improve this service<br />(<i>searched keywords and result click</i>) are not linked to any user data.</li>
                         </ul>
                         <h4>Open-Source</h4>
                         <ul>
                             <li><a href="https://github.com/OnionSearcher/.OnionSearcher">Sources available on Git</a> (<i>Contributor wanted !</i>)</li>
                             <li>GNU license</li>
+                            <li>Ads free</li>
                         </ul>
-                        <h4>No-script friendly</h4>
-                        <h4>Ads free</h4>
+                        <h4>Designed for Tor'Browsers</h4>
+                        <ul>
+                            <li>No-script friendly</li>
+                        </ul>
+                        <h4>Policy</h4>
+                        <ul>
+                            <li>No pedo please. Thanks to report indexed links for deindexing with contact form.</li>
+                        </ul>
                     </p>
                 </div>
                 <div class="modal-footer">
@@ -350,6 +366,14 @@ else
                     $(".notIndexScreen").show();
                     $(".resultScreen").show();
                     document.getElementById("qNotIndex").focus();
+                    // keywords bold
+                    var keywords = document.getElementById("qNotIndex").value.split(" ");
+                    $(".ResultText").each(function () {
+                        var t = this.innerHTML;
+                        for (var i = 0; i < keywords.length; i++)
+                            t = t.replace(keywords[i], "<b>" + keywords[i] + "</b>");
+                        this.innerHTML = t;
+                    });
                     break;
                 default: // indexScreen
                     $(".indexScreen").show();

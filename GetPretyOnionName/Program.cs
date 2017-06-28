@@ -1,8 +1,8 @@
-﻿using GetPretyOnionName.Properties;
-using System;
+﻿using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading;
+using GetPretyOnionName.Properties;
 using WebSearcherCommon;
 
 namespace GetPretyOnionName
@@ -21,7 +21,7 @@ namespace GetPretyOnionName
                 bool found = false;
                 while (true)
                 {
-                    TorManager.Start();
+                    TorManager.StartAsync(new CancellationToken()).Wait();
 
                     do
                     {

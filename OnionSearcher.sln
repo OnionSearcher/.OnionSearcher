@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.13
+VisualStudioVersion = 15.0.26430.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "AzureSearcherWebRole", "AzureSearcherWebRole\AzureSearcherWebRole.ccproj", "{B191BD35-21A5-4EB1-8EA2-5F8931AB0800}"
 EndProject
@@ -15,9 +15,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSearcherCommon", "WebSea
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EB0DB9EA-2A38-49EC-9025-7FA3BD4A10C1}"
 	ProjectSection(SolutionItems) = preProject
+		CreateDataBase.Admin.sql = CreateDataBase.Admin.sql
+		CreateDataBase.Crawler.sql = CreateDataBase.Crawler.sql
+		CreateDataBase.Histo.sql = CreateDataBase.Histo.sql
+		CreateDataBase.Manager.sql = CreateDataBase.Manager.sql
+		CreateDataBase.Searcher.sql = CreateDataBase.Searcher.sql
 		CreateDataBase.sql = CreateDataBase.sql
-		CreateDataBaseHisto.sql = CreateDataBaseHisto.sql
-		CreateDataBaseUsers.sql = CreateDataBaseUsers.sql
+		CreateDataBase.Users.sql = CreateDataBase.Users.sql
 		README.md = README.md
 		TestTorWebSearcherWebRole.bat = TestTorWebSearcherWebRole.bat
 		TestTorWebSearcherWorkerRole.bat = TestTorWebSearcherWorkerRole.bat

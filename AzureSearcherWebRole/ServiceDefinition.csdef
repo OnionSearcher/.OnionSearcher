@@ -16,5 +16,13 @@
       <!-- To randomise on production and set the localhosrt in web/torrc-->
       <InputEndpoint name="EndpointTor" protocol="http" port="12345" localPort="13246" />
     </Endpoints>
+    <Runtime executionContext="elevated" />
+    <Imports>
+      <Import moduleName="Diagnostics" />
+    </Imports>
+    <Startup>
+      <!-- Remove Microsoft-HTTPAPI/2.0 Server Header for some low level error page -->
+      <Task commandLine="Configure_HTTP.SYS.cmd" executionContext="elevated" />
+    </Startup>
   </WebRole>
 </ServiceDefinition>

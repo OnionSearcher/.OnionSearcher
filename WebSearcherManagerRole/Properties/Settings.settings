@@ -3,28 +3,34 @@
   <Profiles />
   <Settings>
     <Setting Name="ComputeIndexedPagesTaskDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">00:15:00</Value>
+      <Value Profile="(Default)">00:20:00</Value>
     </Setting>
     <Setting Name="PagesPurgeTaskDelay" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">01:00:00</Value>
     </Setting>
     <Setting Name="UpdatePageRankTaskDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">00:05:00</Value>
+      <Value Profile="(Default)">00:10:00</Value>
     </Setting>
     <Setting Name="UpdateHiddenServicesRankDelay" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">00:30:00</Value>
     </Setting>
-    <Setting Name="TimeBeforeRecycle" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">2.00:00:00</Value>
-    </Setting>
-    <Setting Name="HDRootRescanDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">1.00:00:00</Value>
+    <Setting Name="ScanOldHDDelay" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">01:00:00</Value>
     </Setting>
     <Setting Name="FrontHref" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">http://toset.onion/</Value>
+      <Value Profile="(Default)">http://onicoyceokzquk4i.onion/?test</Value>
     </Setting>
     <Setting Name="FrontHrefCheckDelay" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">01:00:00</Value>
+    </Setting>
+    <Setting Name="ScanOldPagesDelay" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">00:15:00</Value>
+    </Setting>
+    <Setting Name="TimeBeforeRecycle" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">08:00:00</Value>
+    </Setting>
+    <Setting Name="MirrorsDetectDelay" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">08:00:00</Value>
     </Setting>
   </Settings>
 </SettingsFile>

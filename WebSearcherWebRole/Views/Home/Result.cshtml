@@ -1,11 +1,11 @@
 ﻿<div class="resultScreen">
     <div class="container row">
-        <div class="col-sm-offset-1 col-sm-9">
+        <div class="col-sm-offset-1 col-sm-10 col-md-9">
         @if (ViewBag.ResultsTotalNb > 0)
         {
             <p class="text-muted mb16">
             @(ViewBag.ResultsTotalNb > 1 ? "About "+String.Format("{0:n0}", ViewBag.ResultsTotalNb)+" results." : "One lonely result...")
-            Current results @(ViewBag.IsFull ? "aren't" :"are") filtered, you can <a href="/?@(ViewBag.IsFull ? "": "f=1&")q=@(ViewBag.ResearchUrlEncoded)">click here to change this</a>.
+            Current results @(ViewBag.IsFull ? "aren't" :"are") filtered, <a href="/?@(ViewBag.IsFull ? "": "f=1&")q=@(ViewBag.ResearchUrlEncoded)">click here to change this</a>.
             </p>
 
             foreach (PageResultEntity item in ViewBag.Results)
@@ -13,7 +13,10 @@
                 <h4>
                     <a href="@item.UrlClick" @(item.TitleToolTip == null ? "" : "title=\""+item.TitleToolTip + "\"")>@item.Title</a>
                 </h4><h6>
-                    <a class="text-muted" href="@item.UrlClick" @(item.UrlToolTip == null ? "" : "title=\""+item.UrlToolTip+"\"")>@item.Url</a>
+                    @if (item.HiddenServiceMain == null)
+                    { <a class="text-muted" href="@item.UrlClick" @(item.UrlToolTip == null ? "" : "title=\"" + item.UrlToolTip + "\"")>@item.Url</a>}
+                    else
+                    { <span class="label label-default">Mirror of <a href="@item.HiddenServiceMainClick">@item.HiddenServiceMain</a></span> }
                     @if(!item.CrawleError)
                     {
                          if(item.DaySinceLastCrawle>1)
@@ -27,9 +30,8 @@
                          else
                          {<span class="label label-danger">Offline @item.HourSinceLastCrawle hours ago</span>}
                     }
-
                 </h6>
-                <p>@item.InnerText</p>
+                <p class="ResultText">@item.InnerText</p>
             }
             if (ViewBag.ResultsTotalNb > 1)
             {

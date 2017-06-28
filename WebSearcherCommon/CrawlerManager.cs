@@ -1,20 +1,20 @@
-using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using WebSearcherCommon;
+using HtmlAgilityPack;
 
-namespace WebSearcherWorkerRole
+namespace WebSearcherCommon
 {
-    internal class CrawlerManager
+    public class CrawlerManager
     {
 
-        internal static async Task RunAsync(CancellationToken cancellationToken)
+        public static async Task RunAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -23,7 +23,12 @@ namespace WebSearcherWorkerRole
                     string url = await StorageManager.RetrieveCrawleRequestAsync(cancellationToken);
                     if (!string.IsNullOrEmpty(url))
                     {
-                        if (!(await CrawleOneAsync(url, cancellationToken)))
+                        PerfCounter.CounterCrawleStarted.Increment();
+                        if (await CrawleOneAsync(url, cancellationToken))
+                        {
+                            PerfCounter.CounterCrawleValided.Increment();
+                        }
+                        else
                         {
                             // fail requeue the URL en P5
                             await StorageManager.StoreErrorCrawleRequestAsync(url, cancellationToken);
@@ -39,7 +44,7 @@ namespace WebSearcherWorkerRole
                     }
                 }
             }
-            catch (TaskCanceledException) { }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 Trace.TraceError("CrawlerManager.RunAsync Exception : " + ex.GetBaseException().ToString());
@@ -66,19 +71,19 @@ namespace WebSearcherWorkerRole
                 }
             }
         }
-        
+
         internal static async Task<bool> CrawleOneAsync(string url, CancellationToken cancellationToken)
         {
             try
             {
                 Uri uriOrig = new Uri(url); // url have been Normalized before push in the queue
-                
+
                 PageEntity page = new PageEntity(uriOrig);
 
                 using (SqlManager sql = new SqlManager())
                 {
                     // last scan date ?
-                    if (!await sql.CheckIfCanCrawlePageAsync(url, page.HiddenService, cancellationToken))
+                    if (!await sql.CheckIfCanCrawlePageAsync(page.Url, page.HiddenService, cancellationToken))
                     {
                         return true; // don't refresh !
                     }
@@ -109,7 +114,7 @@ namespace WebSearcherWorkerRole
                             }
                             else
                             {
-                                Trace.TraceWarning("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Error " + ex.GetBaseException().Message);
+                                Trace.TraceInformation("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : WebException " + ex.GetBaseException().Message);
                             }
                         }
                         else // raise by ProxyManager_DownloadProgressChanged
@@ -117,7 +122,7 @@ namespace WebSearcherWorkerRole
                             Trace.TraceInformation("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Cancelled");
                             isRetry = false;
                         }
-                        if(isRetry)
+                        if (isRetry)
                         {
                             await sql.PageInsertOrUpdateKo(page, cancellationToken);
                             return false;
@@ -128,34 +133,52 @@ namespace WebSearcherWorkerRole
                             return true; // looks like an OK for the manager : he won't retry
                         }
                     }
-                    
+                    catch (OperationCanceledException) { return false; } // retry
+                    catch (Exception ex)
+                    {
+#if DEBUG
+                        Debugger.Break();
+#endif
+                        Trace.TraceInformation("CrawlerManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : WebException " + ex.GetBaseException().ToString());
+                        await sql.PageInsertOrUpdateKo(page, cancellationToken);
+                        return false;
+                    }
+
                     HtmlDocument htmlDoc = new HtmlDocument();
                     htmlDoc.LoadHtml(rawHtml);
 #if SAVEHTMLRAW
                     page.HtmlRaw = rawHtml;
 #endif
                     rawHtml = null;
-                    htmlDoc.DocumentNode.Descendants("script").ToList().ForEach(x => x.Remove()); // else appear in InnerText !
-                    htmlDoc.DocumentNode.Descendants("style").ToList().ForEach(x => x.Remove()); // else appear in InnerText !
-                    htmlDoc.DocumentNode.Descendants().Where(n => n.NodeType == HtmlNodeType.Comment).ToList().ForEach(x => x.Remove()); // else appear in InnerText !
+
+                    IEnumerable<HtmlNode> lst = htmlDoc.DocumentNode.Descendants("script");
+                    if (lst != null)
+                        lst.ToList().ForEach(x => x.Remove()); // else appear in InnerText !
+                    lst = htmlDoc.DocumentNode.Descendants("style");
+                    if (lst != null)
+                        lst.ToList().ForEach(x => x.Remove()); // else appear in InnerText !
+                    lst = htmlDoc.DocumentNode.Descendants().Where(n => n.NodeType == HtmlNodeType.Comment);
+                    if (lst != null)
+                        lst.ToList().ForEach(x => x.Remove()); // else appear in InnerText !
+                    lst = null;
 
                     // Title
                     HtmlNode htmlNode2 = htmlDoc.DocumentNode.SelectSingleNode("//head/title");
-                    if (!string.IsNullOrEmpty(page.InnerText))
+                    if (htmlNode2 != null && !string.IsNullOrEmpty(htmlNode2.InnerText))
                         page.Title = PageEntity.NormalizeText(HttpUtility.HtmlDecode(htmlNode2.InnerText));
                     else
                         page.Title = uriOrig.Host;
                     // InnerText
                     htmlNode2 = htmlDoc.DocumentNode.SelectSingleNode("//body");
-                    if (!string.IsNullOrEmpty(page.InnerText))
+                    if (htmlNode2 != null && !string.IsNullOrEmpty(htmlNode2.InnerText))
                         page.InnerText = PageEntity.NormalizeText(HttpUtility.HtmlDecode(htmlNode2.InnerText));
                     else
                         page.InnerText = string.Empty; // null will raise an exception on the sql proc call
                     htmlNode2 = null;
 
                     // <A href digest
-                    HashSet<string>  innerLinks = new HashSet<string>();
-                    HashSet<string>  outerLinks = new HashSet<string>();
+                    HashSet<string> innerLinks = new HashSet<string>();
+                    HashSet<string> outerLinks = new HashSet<string>();
                     foreach (HtmlNode htmlNode in htmlDoc.DocumentNode.Descendants("a"))
                     {
                         if (htmlNode.Attributes.Contains("href") && !cancellationToken.IsCancellationRequested)
@@ -240,23 +263,40 @@ namespace WebSearcherWorkerRole
                             await StorageManager.StoreInnerCrawleRequestAsync(str, isLinkFromRoot, cancellationToken);
                     }
                     innerLinks = null;
-                    
-                    await sql.PageInsertOrUpdateOk(page, cancellationToken);
+
+                    try
+                    {
+                        await sql.PageInsertOrUpdateOk(page, cancellationToken);
+                    }
+                    catch (SqlException ex)
+                    {
+                        Trace.TraceWarning("CrawlerManager.PageInsertOrUpdateOk First try SqlException " + url + " : " + ex.GetBaseException().Message);
+                        await Task.Delay(30000, cancellationToken);
+                        await sql.PageInsertOrUpdateOk(page, cancellationToken); // second try...
+                    }
                 }
 
                 page = null;
                 return true;
             }
-            catch (TaskCanceledException) { return false; }
+            catch (OperationCanceledException) { return false; }
+            catch (SqlException ex)
+            {
+                Trace.TraceWarning("CrawlerManager.CrawleOneAsync SqlException for " + url + " : " + ex.GetBaseException().ToString());
+#if DEBUG
+                if (Debugger.IsAttached) { Debugger.Break(); } // & !ex.Message.Contains("Timeout") & !ex.Message.Contains("A transport-level error has occurred")
+#endif
+                return false;
+            }
             catch (Exception ex)
             {
-                Trace.TraceError("CrawlerManager.CrawleOneAsync Exception for " + url + " : " + ex.GetBaseException().ToString());
+                Trace.TraceWarning("CrawlerManager.CrawleOneAsync Exception for " + url + " : " + ex.GetBaseException().ToString());
 #if DEBUG
-                if (Debugger.IsAttached && !ex.Message.Contains("Timeout") & !ex.Message.Contains("A transport-level error has occurred")) { Debugger.Break(); }
+                if (Debugger.IsAttached) { Debugger.Break(); } // & !ex.Message.Contains("Timeout") & !ex.Message.Contains("A transport-level error has occurred")
 #endif
                 return false;
             }
         }
-        
+
     }
 }

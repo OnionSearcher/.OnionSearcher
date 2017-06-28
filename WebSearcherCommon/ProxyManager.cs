@@ -6,11 +6,11 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 
-namespace WebSearcherWorkerRole
+namespace WebSearcherCommon
 {
     internal class ProxyManager : WebClient
     {
-       private static readonly Random rand = new Random();
+        private static readonly Random rand = new Random();
 
         public ProxyManager() : base()
         {
@@ -78,13 +78,13 @@ namespace WebSearcherWorkerRole
         protected override WebRequest GetWebRequest(Uri uri)
         {
             HttpWebRequest ret = base.GetWebRequest(uri) as HttpWebRequest;
-            ret.Timeout= 120000;
+            ret.Timeout = 120000;
             ret.Accept = "text/html"; // not enouth for filtering content response
-            ret.Referer = uri.ToString(); // may avoid some ads
-            //ret.UserAgent = "Mozilla/5.0";
-            
+            ret.Referer = uri.AbsoluteUri; // may avoid some ads, tostring may crash with chiness code.
+            ret.UserAgent = "Mozilla/5.0"; // same as commun TorBrowser users
+
             return ret;
         }
-        
+
     }
 }

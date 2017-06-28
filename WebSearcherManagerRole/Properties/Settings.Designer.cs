@@ -25,7 +25,7 @@ namespace WebSearcherManagerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:15:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:20:00")]
         public global::System.TimeSpan ComputeIndexedPagesTaskDelay {
             get {
                 return ((global::System.TimeSpan)(this["ComputeIndexedPagesTaskDelay"]));
@@ -43,7 +43,7 @@ namespace WebSearcherManagerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:05:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:10:00")]
         public global::System.TimeSpan UpdatePageRankTaskDelay {
             get {
                 return ((global::System.TimeSpan)(this["UpdatePageRankTaskDelay"]));
@@ -61,25 +61,16 @@ namespace WebSearcherManagerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("2.00:00:00")]
-        public global::System.TimeSpan TimeBeforeRecycle {
+        [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
+        public global::System.TimeSpan ScanOldHDDelay {
             get {
-                return ((global::System.TimeSpan)(this["TimeBeforeRecycle"]));
+                return ((global::System.TimeSpan)(this["ScanOldHDDelay"]));
             }
         }
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1.00:00:00")]
-        public global::System.TimeSpan HDRootRescanDelay {
-            get {
-                return ((global::System.TimeSpan)(this["HDRootRescanDelay"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("http://toset.onion/")]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://onicoyceokzquk4i.onion/?test")]
         public string FrontHref {
             get {
                 return ((string)(this["FrontHref"]));
@@ -92,6 +83,33 @@ namespace WebSearcherManagerRole {
         public global::System.TimeSpan FrontHrefCheckDelay {
             get {
                 return ((global::System.TimeSpan)(this["FrontHrefCheckDelay"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:15:00")]
+        public global::System.TimeSpan ScanOldPagesDelay {
+            get {
+                return ((global::System.TimeSpan)(this["ScanOldPagesDelay"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("08:00:00")]
+        public global::System.TimeSpan TimeBeforeRecycle {
+            get {
+                return ((global::System.TimeSpan)(this["TimeBeforeRecycle"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("08:00:00")]
+        public global::System.TimeSpan MirrorsDetectDelay {
+            get {
+                return ((global::System.TimeSpan)(this["MirrorsDetectDelay"]));
             }
         }
     }

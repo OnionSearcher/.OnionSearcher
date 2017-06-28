@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
@@ -32,7 +31,7 @@ namespace WebSearcherWebRole
         {
             if (version == null)
             {
-                version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
             }
             return version;
         }
@@ -51,7 +50,22 @@ namespace WebSearcherWebRole
 
             MvcHandler.DisableMvcResponseHeader = true;
 
-            dequeueBackground = Task.Run(() => { StorageManager.DequeueAsync(cancellationTokenSource.Token).Wait(cancellationTokenSource.Token); }, cancellationTokenSource.Token);
+            dequeueBackground = Task.Run(() =>
+            {
+                try
+                {
+                    StorageManager.DequeueAsync(cancellationTokenSource.Token).Wait(cancellationTokenSource.Token);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    Trace.TraceError("StorageManager.DequeueAsync Exception : " + ex.GetBaseException().ToString());
+#if DEBUG
+                    if (Debugger.IsAttached) { Debugger.Break(); }
+#endif
+                }
+                Trace.TraceInformation("StorageManager.DequeueAsync finish");
+            }, cancellationTokenSource.Token);
         }
 
         protected void Application_PreSendRequestHeaders()
@@ -96,6 +110,7 @@ namespace WebSearcherWebRole
                         dequeueBackground.Wait(100, cancellationTokenSource.Token);
                     }
                     catch (OperationCanceledException) { }
+                    catch (AggregateException) { }
                 try
                 {
                     dequeueBackground.Dispose();
@@ -103,7 +118,6 @@ namespace WebSearcherWebRole
                 catch (InvalidOperationException) { }
                 dequeueBackground = null;
             }
-
         }
 
     }

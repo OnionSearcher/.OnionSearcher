@@ -27,10 +27,28 @@ namespace WebSearcherCommon {
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n<ArrayOfString xmlns:xsi=\"http://www.w3." +
             "org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\r\n  <s" +
-            "tring>?tosetbeforeupload</string>\r\n</ArrayOfString>")]
+            "tring>test</string>\r\n</ArrayOfString>")]
         public global::System.Collections.Specialized.StringCollection UrlStopper {
             get {
                 return ((global::System.Collections.Specialized.StringCollection)(this["UrlStopper"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:05:00")]
+        public global::System.TimeSpan RetrieveCrawleRequestSaved {
+            get {
+                return ((global::System.TimeSpan)(this["RetrieveCrawleRequestSaved"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("32")]
+        public int NbCrawlersPerInstance {
+            get {
+                return ((int)(this["NbCrawlersPerInstance"]));
             }
         }
     }
