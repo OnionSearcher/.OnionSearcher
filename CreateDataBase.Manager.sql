@@ -16,12 +16,13 @@ CREATE VIEW PagesToCrawle AS
 		ORDER BY NEWID() -- avoid sending a lot of request on the same server like during initial crawle
 GO
 
-
+DROP VIEW LinkedMirrorsCandidate
 CREATE VIEW LinkedMirrorsCandidate AS
 	SELECT m.HiddenService,m.HiddenServiceTarget,p1.Title,SUBSTRING(p1.InnerText,0,128) InnerText, SUBSTRING(p2.InnerText ,0,128) AS InnerText2
 			,p1.CrawleError,p2.CrawleError AS CrawleError2 -- last should be null
 			,r2.HiddenServiceMain AS HiddenServiceMainLoopWarning -- should be null
 			,h1.IndexedPages, h2.IndexedPages as IndexedPages2 -- should be >=
+			,ROW_NUMBER() OVER(PARTITION BY m.HiddenService ORDER BY h2.IndexedPages DESC) as Pref
 		FROM HiddenServiceLinks m
 			INNER JOIN Pages p1 ON p1.Url=m.HiddenService
 			INNER JOIN Pages p2 ON p2.Url=m.HiddenServiceTarget 
@@ -43,7 +44,7 @@ BEGIN
 		FROM LinkedMirrorsCandidate
 		WHERE SUBSTRING(InnerText,0,32)=SUBSTRING(InnerText2 ,0,32) -- to be safe
 			AND CrawleError2 IS NULL AND HiddenServiceMainLoopWarning IS NULL AND IndexedPages<=IndexedPages2 -- not filtered in the view to analyse theses result and be juged
-
+			AND Pref=1 -- may have double, only usefull on this first select, not the finla check
 	IF @@ROWCOUNT>0
 	BEGIN
 			UPDATE HiddenServices SET IndexedPages=1, Rank=-1.0, RankDate= SYSDATETIMEOFFSET()
@@ -153,7 +154,7 @@ BEGIN
 
 	IF OBJECT_ID('tempdb..#RankingPages') IS NOT NULL
 		DROP TABLE #RankingPages
-	SELECT TOP 100 Url, p.HiddenService, CrawleError, hd.Rank
+	SELECT TOP 100 Url, p.HiddenService, CrawleError, COALESCE(hd.Rank, 0.2) Rank -- hd may not exists, use default
 		INTO #RankingPages
 		FROM PageRankToUpdate p
 			LEFT JOIN HiddenServices hd ON p.HiddenService=hd.HiddenService

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.UI;
@@ -7,6 +9,7 @@ using WebSearcherCommon;
 
 namespace WebSearcherWebRole
 {
+
 #if DEBUG
     [OutputCache(Duration = 5, Location = OutputCacheLocation.Client, VaryByParam = "*")] // JUST TO keep the same kind of header in debug env
 #else
@@ -15,22 +18,40 @@ namespace WebSearcherWebRole
     public class HomeController : Controller // for the search part
     {
 
+        private static DateTime _StopWordsDate = DateTime.MinValue;
+        private static HashSet<string> _StopWords;
+        private static HashSet<string> GetStopWords(SqlManager sql)
+        {
+            if (_StopWordsDate < DateTime.Now)
+            {
+                _StopWords = null;
+            }
+            if (_StopWords == null)
+            {
+                _StopWords = sql.GetStopWords();
+                _StopWordsDate = DateTime.Now.Add(Settings.Default.StopWordsRefresh);
+            }
+            return _StopWords;
+        }
+
         internal void ShorterCache()
         {
 #if DEBUG
-            this.HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(0.01));
-            this.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(0.01));
+            HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(0.01));
+            HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(0.01));
 #else
-            this.HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(60.0));
-            this.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(60.0));
+            HttpContext.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(60.0));
+            HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(60.0));
             
 #endif
         }
         internal void DisableCache()
         {
-            this.HttpContext.Response.Cache.SetNoStore();
-            this.HttpContext.Response.Cache.SetCacheability(HttpCacheability.NoCache);
+            HttpContext.Response.Cache.SetNoStore();
+            HttpContext.Response.Cache.SetCacheability(HttpCacheability.NoCache);
         }
+
+        private static readonly char[] splitChar = new char[] { ' ' };
 
         public ActionResult Index()
         {
@@ -45,10 +66,6 @@ namespace WebSearcherWebRole
                 string q = Request.QueryString["q"];
                 if (!string.IsNullOrWhiteSpace(q))
                 {
-                    ViewBag.Research = q;
-                    ViewBag.ResearchUrlEncoded = Url.Encode(q);
-                    ViewBag.TitlePrefix = q + " - ";
-
                     short p = 1;
                     if (!string.IsNullOrWhiteSpace(Request.QueryString["p"]))
                     {
@@ -64,50 +81,77 @@ namespace WebSearcherWebRole
                     ShorterCache();
                     using (SqlManager sql = new SqlManager())
                     {
-                        SearchResultEntity ret = sql.GetSearchResult(q, p, ViewBag.IsFull);
-                        ViewBag.Results = ret.Results;
-                        ViewBag.ResultsTotalNb = ret.ResultsTotalNb;
-                        ViewBag.Page = p;
-                        if (ret.ResultsTotalNb > 10)
+                        HashSet<string> sw = GetStopWords(sql);
+                        bool hasSW = false;
+                        List<string> keywords = q.Split(splitChar).ToList();
+                        for (int i = keywords.Count - 1; i >= 0; i--)
+                            if (sw.Contains(keywords[i].ToLowerInvariant()))
+                            {
+                                hasSW = true;
+                                keywords.RemoveAt(i);
+                            }
+
+                        if (keywords.Count > 0)
                         {
-                            ViewBag.Previous = true;
-                            ViewBag.Next = true;
-                            if (p < 4)
+                            if (hasSW)
                             {
-                                ViewBag.Previous = (p != 1);
-                                ViewBag.PageA = 1;
-                                ViewBag.PageB = 2;
-                                ViewBag.PageC = 3;
-                                ViewBag.PageD = 4;
-                                ViewBag.PageE = 5;
+                                ViewBag.AlertDanger = "Some of your keyword(s) have been removed. Please read the About section for more information on our policy.";
+                                q = string.Join(" ", keywords);
                             }
-                            else if ((p + 1) * 10 < ret.ResultsTotalNb)
+
+                            ViewBag.Research = q;
+                            ViewBag.ResearchUrlEncoded = Url.Encode(q);
+                            ViewBag.TitlePrefix = q + " - ";
+
+                            SearchResultEntity ret = sql.GetSearchResult(q, p, ViewBag.IsFull);
+                            ViewBag.Results = ret.Results;
+                            ViewBag.ResultsTotalNb = ret.ResultsTotalNb;
+                            ViewBag.Page = p;
+                            if (ret.ResultsTotalNb > 10)
                             {
-                                ViewBag.PageA = p - 2;
-                                ViewBag.PageB = p - 1;
-                                ViewBag.PageC = p;
-                                ViewBag.PageD = p + 1;
-                                ViewBag.PageE = p + 2;
+                                ViewBag.Previous = true;
+                                ViewBag.Next = true;
+                                if (p < 4)
+                                {
+                                    ViewBag.Previous = (p != 1);
+                                    ViewBag.PageA = 1;
+                                    ViewBag.PageB = 2;
+                                    ViewBag.PageC = 3;
+                                    ViewBag.PageD = 4;
+                                    ViewBag.PageE = 5;
+                                }
+                                else if ((p + 1) * 10 < ret.ResultsTotalNb)
+                                {
+                                    ViewBag.PageA = p - 2;
+                                    ViewBag.PageB = p - 1;
+                                    ViewBag.PageC = p;
+                                    ViewBag.PageD = p + 1;
+                                    ViewBag.PageE = p + 2;
+                                }
+                                else if (p * 10 < ret.ResultsTotalNb)
+                                {
+                                    ViewBag.PageA = p - 3;
+                                    ViewBag.PageB = p - 2;
+                                    ViewBag.PageC = p - 1;
+                                    ViewBag.PageD = p;
+                                    ViewBag.PageE = p + 1;
+                                }
+                                else
+                                {
+                                    ViewBag.PageA = p - 4;
+                                    ViewBag.PageB = p - 3;
+                                    ViewBag.PageC = p - 2;
+                                    ViewBag.PageD = p - 1;
+                                    ViewBag.PageE = p;
+                                    ViewBag.Next = false;
+                                }
                             }
-                            else if (p * 10 < ret.ResultsTotalNb)
-                            {
-                                ViewBag.PageA = p - 3;
-                                ViewBag.PageB = p - 2;
-                                ViewBag.PageC = p - 1;
-                                ViewBag.PageD = p;
-                                ViewBag.PageE = p + 1;
-                            }
-                            else
-                            {
-                                ViewBag.PageA = p - 4;
-                                ViewBag.PageB = p - 3;
-                                ViewBag.PageC = p - 2;
-                                ViewBag.PageD = p - 1;
-                                ViewBag.PageE = p;
-                                ViewBag.Next = false;
-                            }
+                            return View("Result");
                         }
-                        return View("Result");
+                        else
+                        {
+                            ViewBag.AlertDanger = "Your keyword(s) have been removed. Please read the About section for more information on our policy. You may use the Contact section if you think there is a mistake.";
+                        }
                     }
                 }
                 else
@@ -215,6 +259,16 @@ namespace WebSearcherWebRole
             ViewBag.TitlePrefix = "About ";
 
             return View();
+        }
+
+        /// <summary>
+        /// private_key, server-status
+        /// </summary>
+        /// <returns></returns>
+        public ActionResult Spam()
+        {
+            Trace.TraceInformation("HomeController.Spam : " + Request.Url);
+            return new RedirectResult("http://127.0.0.1", true); // for fun
         }
 
     }

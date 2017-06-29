@@ -22,7 +22,7 @@ namespace WebSearcherWebRole
 #if DEBUG
             return false;
 #else
-			return true;
+            return true;
 #endif
         }
 
@@ -41,7 +41,7 @@ namespace WebSearcherWebRole
 #if DEBUG
             Trace.TraceInformation("WebSearcherApplication.Application_Start v" + GetVersion() + " on " + Environment.OSVersion.ToString());
 #else
-            Trace.TraceInformation("WebSearcherApplication.Application_Start v"+ GetVersion() + " on " + Environment.OSVersion.ToString());
+            Trace.TraceInformation("WebSearcherApplication.Application_Start v" + GetVersion() + " on " + Environment.OSVersion.ToString());
 #endif
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
@@ -76,10 +76,18 @@ namespace WebSearcherWebRole
 
         protected void Application_Error(Object sender, EventArgs e)
         {
-            Trace.TraceError("WebSearcherApplication.Application_Error : " + Server.GetLastError().GetBaseException().ToString());
+            Exception ex = Server.GetLastError().GetBaseException();
+            if (ex is HttpException && !ex.Message.Contains(" was not found on controller "))
+            {
+                Trace.TraceError("WebSearcherApplication.Application_Error : " + Server.GetLastError().GetBaseException().ToString());
 #if DEBUG
-            if (Debugger.IsAttached && !(Server.GetLastError() is HttpException)) { Debugger.Break(); }
+                if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
+            }
+            else
+            {
+                Trace.TraceWarning("WebSearcherApplication.Application_Error unknow route : " + Request.Url);
+            }
         }
 
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

@@ -12,7 +12,6 @@ namespace WebSearcherCommon
     {
 
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        protected readonly DateTime startUp = DateTime.Now;
 
         public override bool OnStart()
         {

@@ -83,7 +83,8 @@ namespace WebSearcherCommon
 #endif
         public string Title { get; set; }
         public string InnerText { get; set; }
-
+        public string Heading { get; set; }
+        
         public HashSet<string> OuterHdLinks { get; set; }
 
         public DateTimeOffset FirstCrawle { get; set; }

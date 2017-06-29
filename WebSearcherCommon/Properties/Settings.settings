@@ -14,5 +14,8 @@
     <Setting Name="NbCrawlersPerInstance" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">32</Value>
     </Setting>
+    <Setting Name="MaxCallPerTaskDelay" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">01:00:00</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

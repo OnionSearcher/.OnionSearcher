@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -18,29 +19,34 @@ namespace WebSearcherCommon
         {
             try
             {
-                while (!cancellationToken.IsCancellationRequested)
+                using (ProxyManager proxy = new ProxyManager()) // keep same proxy for a few time
                 {
-                    string url = await StorageManager.RetrieveCrawleRequestAsync(cancellationToken);
-                    if (!string.IsNullOrEmpty(url))
+                    DateTime end = DateTime.Now.Add(Settings.Default.MaxCallPerTaskDelay);
+
+                    while (!cancellationToken.IsCancellationRequested && end > DateTime.Now)
                     {
-                        PerfCounter.CounterCrawleStarted.Increment();
-                        if (await CrawleOneAsync(url, cancellationToken))
+                        string url = await StorageManager.RetrieveCrawleRequestAsync(cancellationToken);
+                        if (!string.IsNullOrEmpty(url))
                         {
-                            PerfCounter.CounterCrawleValided.Increment();
+                            PerfCounter.CounterCrawleStarted.Increment();
+                            if (await CrawleOneAsync(proxy, url, cancellationToken))
+                            {
+                                PerfCounter.CounterCrawleValided.Increment();
+                            }
+                            else
+                            {
+                                // fail requeue the URL en P5
+                                await StorageManager.StoreErrorCrawleRequestAsync(url, cancellationToken);
+                            }
                         }
-                        else
+                        else // empty queue
                         {
-                            // fail requeue the URL en P5
-                            await StorageManager.StoreErrorCrawleRequestAsync(url, cancellationToken);
-                        }
-                    }
-                    else // empty queue
-                    {
 #if DEBUG
-                        await Task.Delay(20000, cancellationToken);
+                            await Task.Delay(20000, cancellationToken);
 #else
-                        await Task.Delay(60000, cancellationToken);
+                            await Task.Delay(60000, cancellationToken);
 #endif
+                        }
                     }
                 }
             }
@@ -72,7 +78,7 @@ namespace WebSearcherCommon
             }
         }
 
-        internal static async Task<bool> CrawleOneAsync(string url, CancellationToken cancellationToken)
+        internal static async Task<bool> CrawleOneAsync(ProxyManager proxy, string url, CancellationToken cancellationToken)
         {
             try
             {
@@ -91,10 +97,7 @@ namespace WebSearcherCommon
                     string rawHtml;
                     try
                     {
-                        using (ProxyManager proxy = new ProxyManager())
-                        {
-                            rawHtml = await proxy.DownloadStringTaskAsync(uriOrig); // TO BIZ DON't ALLOW binary data !!
-                        }
+                        rawHtml = await proxy.DownloadStringTaskAsync(uriOrig); // TO BIZ DON't ALLOW binary data !!
                     }
                     catch (WebException ex)
                     {
@@ -168,6 +171,7 @@ namespace WebSearcherCommon
                         page.Title = PageEntity.NormalizeText(HttpUtility.HtmlDecode(htmlNode2.InnerText));
                     else
                         page.Title = uriOrig.Host;
+
                     // InnerText
                     htmlNode2 = htmlDoc.DocumentNode.SelectSingleNode("//body");
                     if (htmlNode2 != null && !string.IsNullOrEmpty(htmlNode2.InnerText))
@@ -175,6 +179,31 @@ namespace WebSearcherCommon
                     else
                         page.InnerText = string.Empty; // null will raise an exception on the sql proc call
                     htmlNode2 = null;
+
+                    // <Heading digest
+                    StringBuilder heading = new StringBuilder();
+                    foreach (HtmlNode htmlNode in htmlDoc.DocumentNode.Descendants("h1"))
+                        if (heading.Length < SqlManager.MaxSqlIndex)
+                            heading.AppendLine(htmlNode.InnerText);
+                        else
+                            break;
+                    if (heading.Length < SqlManager.MaxSqlIndex)
+                        foreach (HtmlNode htmlNode in htmlDoc.DocumentNode.Descendants("h2"))
+                            if (heading.Length < SqlManager.MaxSqlIndex)
+                                heading.AppendLine(htmlNode.InnerText);
+                            else
+                                break;
+                    if (heading.Length < SqlManager.MaxSqlIndex)
+                        foreach (HtmlNode htmlNode in htmlDoc.DocumentNode.Descendants("h3"))
+                            if (heading.Length < SqlManager.MaxSqlIndex)
+                                heading.AppendLine(htmlNode.InnerText);
+                            else
+                                break;
+                    if (heading.Length > 0)
+                        page.Heading = PageEntity.NormalizeText(HttpUtility.HtmlDecode(heading.ToString()));
+                    else
+                        page.Heading = string.Empty; // null will raise an exception on the sql proc call
+                    heading = null;
 
                     // <A href digest
                     HashSet<string> innerLinks = new HashSet<string>();

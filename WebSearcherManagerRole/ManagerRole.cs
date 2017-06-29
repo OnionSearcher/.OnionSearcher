@@ -51,9 +51,11 @@ namespace WebSearcherManagerRole
                 {
                     await sql.UrlStopperPurge(cancellationToken);
                 }
-                
+
+                DateTime end = DateTime.Now.Add(Settings.Default.TimeBeforeRecycle);
+
                 // main loop
-                while (!cancellationToken.IsCancellationRequested && (startUp.Add(Settings.Default.TimeBeforeRecycle) > DateTime.Now))
+                while (!cancellationToken.IsCancellationRequested && (DateTime.Now < end))
                 {
 #if !DEBUG  // In emulator mode, don't start multiple Tor.exe
                     await TorReStarterAsync(cancellationToken); 

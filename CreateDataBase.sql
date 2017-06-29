@@ -3,22 +3,28 @@ CREATE USER sqlWriter FROM LOGIN sqlWriter
 GRANT SELECT TO sqlReader
 GRANT SELECT, INSERT, UPDATE, DELETE TO sqlWriter
 
-CREATE FULLTEXT STOPLIST SearchStoplist FROM SYSTEM STOPLIST;
-ALTER FULLTEXT STOPLIST [SearchStoplist] ADD 'tor' LANGUAGE 'Neutral';
-ALTER FULLTEXT STOPLIST SearchStoplist  ADD 'tor' LANGUAGE 1033;
-ALTER FULLTEXT STOPLIST [SearchStoplist] ADD 'onion' LANGUAGE 'Neutral';
-ALTER FULLTEXT STOPLIST SearchStoplist  ADD 'onion' LANGUAGE 1033;
-ALTER FULLTEXT STOPLIST [SearchStoplist] ADD 'http' LANGUAGE 'Neutral';
-ALTER FULLTEXT STOPLIST SearchStoplist  ADD 'http' LANGUAGE 1033;
-ALTER FULLTEXT STOPLIST [SearchStoplist] ADD 'web' LANGUAGE 'Neutral';
-ALTER FULLTEXT STOPLIST SearchStoplist  ADD 'web' LANGUAGE 1033;
 CREATE FULLTEXT CATALOG SearchCatalog WITH ACCENT_SENSITIVITY=OFF;
+
+CREATE FULLTEXT STOPLIST SearchStoplist FROM SYSTEM STOPLIST;
+GRANT VIEW DEFINITION ON FULLTEXT STOPLIST :: SearchStoplist TO sqlReader;
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'tor' LANGUAGE 'Neutral';
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'tor' LANGUAGE 1033;
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'onion' LANGUAGE 'Neutral';
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'onion' LANGUAGE 1033;
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'http' LANGUAGE 'Neutral';
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'http' LANGUAGE 1033;
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 'Neutral';
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 1033;
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 'Neutral';
+ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 1033;
+-- stop helping fucking pedo.... (list not commited for not helping giving keywords...)
 
 CREATE TABLE Pages
 (
 	HiddenService NVARCHAR(37) NOT NULL,
 	Url NVARCHAR(450) NOT NULL,
 	Title NVARCHAR(450),
+	Heading NVARCHAR(450),
 	InnerText NVARCHAR(MAX),
 	FirstCrawle DATETIMEOFFSET NOT NULL,
 	LastCrawle DATETIMEOFFSET NOT NULL,
@@ -30,11 +36,13 @@ ALTER TABLE Pages ADD CONSTRAINT PK_Pages PRIMARY KEY CLUSTERED (Url)
 
 CREATE FULLTEXT INDEX ON Pages  
 (   
-	Title Language 1033,  
-	InnerText Language 1033
+	Title Language 1033, -- Statistical_Semantics : doesn't work on azure because no fulltext_semantic_language_statistics_database
+	Heading Language 1033, -- Statistical_Semantics : doesn't work on azure because no fulltext_semantic_language_statistics_database
+	InnerText Language 1033, -- Statistical_Semantics : doesn't work on azure because no fulltext_semantic_language_statistics_database
 )   
 KEY INDEX PK_Pages ON SearchCatalog
-WITH STOPLIST = SearchStoplist, CHANGE_TRACKING AUTO 
+WITH STOPLIST = SearchStoplist, CHANGE_TRACKING AUTO  
+GO 
 
 CREATE TABLE BannedPages
 (

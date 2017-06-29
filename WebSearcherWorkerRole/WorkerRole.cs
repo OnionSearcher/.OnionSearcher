@@ -14,8 +14,11 @@ namespace WebSearcherWorkerRole
             try
             {
                 PerfCounter.Init();
-                
-                while (!cancellationToken.IsCancellationRequested && (startUp.Add(Settings.Default.TimeBeforeRecycle) > DateTime.Now))
+
+                DateTime end = DateTime.Now.Add(Settings.Default.TimeBeforeRecycle);
+
+                // main loop
+                while (!cancellationToken.IsCancellationRequested && (DateTime.Now < end))
                 {
                     await TorReStarterAsync(cancellationToken);
 

@@ -94,9 +94,18 @@ DELETE from pages where HiddenService<>url and url like '?/'
 select p.Title, s.* FROM (
 SELECT HiddenService, count(1) pages, min(url) minUrl, max(url) maxUrl, min(CrawleError) minCrawleError, max(CrawleError) maxCrawleError, min(FirstCrawle) FirstCrawle, max(LastCrawle) LastCrawle from Pages WITH (NOLOCK) group by HiddenService having count(1)>2
 )s INNER JOIN Pages p WITH (NOLOCK) ON s.HiddenService = p.Url ORDER BY 1 desc
+-- hd up
+SELECT COUNT(1) FROM Pages p WITH (NOLOCK)
+WHERE p.HiddenService=p.Url AND p.CrawleError IS NULL
+
+FROM (
+SELECT HiddenService, count(1) pages, min(url) minUrl, max(url) maxUrl, min(CrawleError) minCrawleError, max(CrawleError) maxCrawleError, min(FirstCrawle) FirstCrawle, max(LastCrawle) LastCrawle from Pages WITH (NOLOCK) group by HiddenService having count(1)>2
+)s INNER JOIN  ON s.HiddenService = p.Url ORDER BY 1 desc
+
 
 EXEC sp_spaceused N'Pages'
 EXEC sp_spaceused N'HiddenServices'
+
 
 -- LookForUrlStopperCandidate
 SELECT Query, COUNT(DISTINCT HiddenService) As HiddenServiceCount, COUNT(1) AS UrlCount, MIN(Url) AS MinUrl, MAX(Url) AS MaxUrl FROM (
@@ -116,6 +125,11 @@ SELECT t.Title,SUBSTRING(p.InnerText,0,128) InnerText,  p.Url, p.CrawleError
 -- in XLS, an added column with the target and another column with the formula : ="INSERT INTO [HiddenServiceMirrors] ([HiddenService],[HiddenServiceMain]) VALUES ('"&C3&"','"&H3&"')"
 
 
-
-
-
+-- improve mirror
+SELECT p.Url, h.[IndexedPages],h.[Rank], p.[Rank], p.crawleError, p.title, p.heading
+,(SELECT COUNT(1) FROM [HiddenServiceMirrors] WHERE [HiddenServiceMain]=p.Url) HasMirror
+,(SELECT COUNT(1) FROM [HiddenServiceMirrors] WHERE [HiddenService]=p.Url) WARN_AsAMirror
+FROM Pages p WITH (NOLOCK)
+INNER JOIN HiddenServices h WITH (NOLOCK) ON h.HiddenService = p.Url
+WHERE Url IN (SELECT distinct HiddenServiceMain FROM HiddenServiceMirrors WITH (NOLOCK))
+ORDER BY Title, h.[Rank] DESC

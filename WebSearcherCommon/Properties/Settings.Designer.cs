@@ -51,5 +51,14 @@ namespace WebSearcherCommon {
                 return ((int)(this["NbCrawlersPerInstance"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
+        public global::System.TimeSpan MaxCallPerTaskDelay {
+            get {
+                return ((global::System.TimeSpan)(this["MaxCallPerTaskDelay"]));
+            }
+        }
     }
 }

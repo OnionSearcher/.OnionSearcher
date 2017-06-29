@@ -1,9 +1,12 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WebSearcherWebRole.Properties" GeneratedClassName="Settings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WebSearcherWebRole" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
     <Setting Name="TimeBeforeRecycle" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">7.00:00:00</Value>
+      <Value Profile="(Default)">31.00:00:00</Value>
+    </Setting>
+    <Setting Name="StopWordsRefresh" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">1.00:00:00</Value>
     </Setting>
   </Settings>
 </SettingsFile>

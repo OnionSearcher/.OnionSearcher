@@ -92,15 +92,8 @@
     <None Include="packages.config" />
     <None Include="gulpfile.js" />
     <Content Include="error.htm" />
-    <Content Include="error401.htm" />
-    <Content Include="error403.htm" />
-    <Content Include="error404.htm" />
-    <Content Include="error405.htm" />
-    <Content Include="error406.htm" />
-    <Content Include="error412.htm" />
+    <Content Include="error400.htm" />
     <Content Include="error500.htm" />
-    <Content Include="error501.htm" />
-    <Content Include="error502.htm" />
     <Content Include="favicon.ico" />
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Home\Add.cshtml" />
@@ -116,8 +109,12 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
       <CustomToolNamespace>WebSearcherWebRole</CustomToolNamespace>
     </None>
-    <None Include="TorExpertBundle\hostname" />
-    <None Include="TorExpertBundle\private_key" />
+    <None Include="TorExpertBundle\hostname">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TorExpertBundle\private_key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
       <SubType>Designer</SubType>

@@ -10,11 +10,11 @@ If (-Not $categoryExists)
 {
   $objCCDC = New-Object System.Diagnostics.CounterCreationDataCollection
  
-  $objCCD1 = New-Object System.Diagnostics.CounterCreationData
-  $objCCD1.CounterName = "RoleStarted"
-  $objCCD1.CounterType = "NumberOfItems32"
-  $objCCD1.CounterHelp = "Web Searcher Role Started"
-  $objCCDC.Add($objCCD1) | Out-Null
+  #$objCCD1 = New-Object System.Diagnostics.CounterCreationData
+  #$objCCD1.CounterName = "RoleStarted"
+  #$objCCD1.CounterType = "NumberOfItems32"
+  #$objCCD1.CounterHelp = "Web Searcher Role Started"
+  #$objCCDC.Add($objCCD1) | Out-Null
  
   $objCCD2 = New-Object System.Diagnostics.CounterCreationData
   $objCCD2.CounterName = "CrawleStarted"

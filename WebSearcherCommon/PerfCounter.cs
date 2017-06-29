@@ -14,12 +14,12 @@ namespace WebSearcherCommon
             {
                 /* <!> Need to be done by Powershell : current right are not enouth : <Runtime executionContext="elevated" /> don't seems to work now. */
                 CounterCreationDataCollection counterCollection = new CounterCreationDataCollection();
-                counterCollection.Add(new CounterCreationData()
-                {
-                    CounterName = "RoleStarted",
-                    CounterHelp = "Web Searcher Role Started",
-                    CounterType = PerformanceCounterType.NumberOfItems32
-                });
+                //counterCollection.Add(new CounterCreationData()
+                //{
+                //    CounterName = "RoleStarted",
+                //    CounterHelp = "Web Searcher Role Started",
+                //    CounterType = PerformanceCounterType.NumberOfItems32
+                //});
                 counterCollection.Add(new CounterCreationData()
                 {
                     CounterName = "CrawleStarted",
@@ -38,10 +38,11 @@ namespace WebSearcherCommon
                   counterCategory,
                   "Web Searcher Category",
                   PerformanceCounterCategoryType.SingleInstance, counterCollection); // won't work ! not enouth right on azure cloud right now ! 
+                
             }
 
-            PerformanceCounter CounterRoleStarted = new PerformanceCounter(counterCategory, "RoleStarted", string.Empty, false);
-            CounterRoleStarted.Increment();
+            //PerformanceCounter CounterRoleStarted = new PerformanceCounter(counterCategory, "RoleStarted", string.Empty, false);
+            //CounterRoleStarted.Increment(); --> Counter reseted, need to find a way to keep the value
 
             CounterCrawleStarted = new PerformanceCounter(counterCategory, "CrawleStarted", string.Empty, false);
             CounterCrawleValided = new PerformanceCounter(counterCategory, "CrawleValided", string.Empty, false);
