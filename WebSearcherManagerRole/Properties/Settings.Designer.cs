@@ -25,55 +25,10 @@ namespace WebSearcherManagerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:20:00")]
-        public global::System.TimeSpan ComputeIndexedPagesTaskDelay {
-            get {
-                return ((global::System.TimeSpan)(this["ComputeIndexedPagesTaskDelay"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
-        public global::System.TimeSpan PagesPurgeTaskDelay {
-            get {
-                return ((global::System.TimeSpan)(this["PagesPurgeTaskDelay"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:10:00")]
-        public global::System.TimeSpan UpdatePageRankTaskDelay {
-            get {
-                return ((global::System.TimeSpan)(this["UpdatePageRankTaskDelay"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:30:00")]
-        public global::System.TimeSpan UpdateHiddenServicesRankDelay {
-            get {
-                return ((global::System.TimeSpan)(this["UpdateHiddenServicesRankDelay"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("01:00:00")]
         public global::System.TimeSpan ScanOldHDDelay {
             get {
                 return ((global::System.TimeSpan)(this["ScanOldHDDelay"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("http://onicoyceokzquk4i.onion/?test")]
-        public string FrontHref {
-            get {
-                return ((string)(this["FrontHref"]));
             }
         }
         
@@ -97,7 +52,7 @@ namespace WebSearcherManagerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("08:00:00")]
+        [global::System.Configuration.DefaultSettingValueAttribute("7.00:00:00")]
         public global::System.TimeSpan TimeBeforeRecycle {
             get {
                 return ((global::System.TimeSpan)(this["TimeBeforeRecycle"]));
@@ -106,10 +61,19 @@ namespace WebSearcherManagerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("08:00:00")]
-        public global::System.TimeSpan MirrorsDetectDelay {
+        [global::System.Configuration.DefaultSettingValueAttribute("00:25:00")]
+        public global::System.TimeSpan MainPerfDelay {
             get {
-                return ((global::System.TimeSpan)(this["MirrorsDetectDelay"]));
+                return ((global::System.TimeSpan)(this["MainPerfDelay"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://onicoyceokzquk4i.onion/")]
+        public string FrontHref {
+            get {
+                return ((string)(this["FrontHref"]));
             }
         }
     }

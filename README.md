@@ -13,13 +13,16 @@ An open source, anonymous, no-script friendly, ads free, search engine dedicated
 - Fix CounterRoleStarted.Increment
 - Anonymous Tor process
 - Crawlers stability
+- redirect to / don't work sometime
+- restart new url scan on old hd and page to fix (no gode right and need a proc)
+- Manage redirect like a new Url
+- WebException  Bad Gateway
 
 ## TODO
 
 - Url cleaner (sid remover for exemple)
 - Improve full text search
 - Better english
-- Upgrade to Bootstrap 4 when it will be released
 - Abuse/Report system for user
 
 ## Contributing
@@ -30,8 +33,9 @@ Requirement :
     - ASP.Net and web development
     - Azure developement
     - Data storage and processing
-- Download and uncompress Tor Expert Bundle in the folder WebSearcherCommon\TorExpertBundle
-- Have an SQL Server database with full text search enabled
+- Have an SQL Server database
+- Download Tor Expert Bundle to the folder WebSearcherCommon\ExpertBundle (and rename files tor.exe as rot.exe)
+- Download the lib https://github.com/OnionSearcher/BetterHttpClient.git to the folder ..\BetterHttpClient
 
 Whishlist :
 
@@ -40,3 +44,4 @@ Whishlist :
 - Non english display support
 - Replace SQL Server and his full text search by Elasticsearch or better
 - Replace .Net 4.6 by .Net Core 2 when it will be released
+- Upgrade to Bootstrap 4 when it will be released

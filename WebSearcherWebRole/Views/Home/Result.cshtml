@@ -87,3 +87,22 @@
 <script>
     var screen = "resultScreen";
 </script>
+
+@section LateScript {
+<script>
+    RegExp.escape = function(str) {
+        var specials = /[.*+?|()\[\]{}\\$^]/g;
+        return str.replace(specials, "\\$&");
+    }
+    $(function () {
+        // keywords bold
+        var keywords = document.getElementById("qNotIndex").value.split(" ");
+        $(".ResultText").each(function () {
+            var t = this.innerHTML;
+            for (var i = 0; i < keywords.length; i++)
+                t = t.replace(new RegExp("(" + RegExp.escape(keywords[i]) + ")", "gi"), "<b class='text-uppercase'>" + keywords[i] + "</b>");
+            this.innerHTML = t;
+        });
+    });
+</script>
+}

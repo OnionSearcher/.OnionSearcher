@@ -57,6 +57,8 @@ namespace WebSearcherWebRole
         {
             Trace.TraceInformation("HomeController.Index : " + Request.RawUrl);
 
+            //ViewBag.AlertDanger = "DATABASE MAINTENANCE, please come back tomorrow.";
+
             if (Request.QueryString.Count == 0)
             {
                 ViewBag.FastPageDisplay = true;
@@ -197,26 +199,29 @@ namespace WebSearcherWebRole
 
             if (Request.Form.Count > 0)
             {
-                string q = Request.Form["url"];
-                if (!string.IsNullOrWhiteSpace(q))
+                string url = Request.Form["url"];
+                if (!string.IsNullOrWhiteSpace(url))
                 {
                     DisableCache();
 
-                    q = q.Trim();
-                    if (!q.StartsWith("http"))
+                    url = url.Trim();
+                    if (!url.StartsWith("http"))
+                        url = "http://" + url;
+
+                    if (url.Length < SqlManager.MaxSqlIndex && Uri.TryCreate(url, UriKind.Absolute, out Uri uriResult) && RotManager.IsTorUri(uriResult))
                     {
-                        q = "http://" + q;
+                        url = PageEntity.NormalizeUrl(url);
+                        using (SqlManager sql = new SqlManager())
+                        {
+                            sql.CrawleRequestEnqueue(url);
+                        }
                     }
 
-                    if (q.Length < 256 && Uri.TryCreate(q, UriKind.Absolute, out Uri uriResult) && uriResult.IsTor())
-                    {
-                        StorageManager.EnqueueCrawlerRequest(uriResult.ToString());
-                        return Redirect("/?msg=1");
-                    }
-                    else
-                    {
-                        ViewBag.AlertDanger = "ERROR : the URL " + q + " doesn't seems to be a valide hidden service, please check and retry.";
-                    }
+                    return Redirect("/?msg=1");
+                }
+                else
+                {
+                    ViewBag.AlertDanger = "ERROR : the URL " + url + " doesn't seems to be a valide hidden service, please check and retry.";
                 }
             }
 
@@ -230,23 +235,27 @@ namespace WebSearcherWebRole
 
             if (Request.Form.Count > 0)
             {
-                string q = Request.Form["msg"];
-                if (!string.IsNullOrWhiteSpace(q))
+                DisableCache();
+                string msg = Request.Form["msg"];
+                if (!string.IsNullOrWhiteSpace(msg))
                 {
-                    DisableCache();
-
-                    q = q.Trim();
-
-                    if (q.Length < 8000)
+                    msg = msg.Trim();
+                    if (msg.Length <= 4000)
                     {
-                        StorageManager.EnqueueContact(q);
-
+                        using (SqlManager sql = new SqlManager())
+                        {
+                            sql.PostContactMessage(msg);
+                        }
                         return Redirect("/?msg=2");
                     }
                     else
                     {
                         ViewBag.AlertDanger = "ERROR : The message is to long, make it shorter please.";
                     }
+                }
+                else
+                {
+                    ViewBag.AlertDanger = "ERROR : The message is empty.";
                 }
             }
 

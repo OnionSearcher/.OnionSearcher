@@ -3,25 +3,11 @@
   <WorkerRole name="WebSearcherWorkerRole" vmsize="Standard_A1_v2">
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
-      <Setting name="SharedStorage" />
     </ConfigurationSettings>
+    <!-- kill Tor of a previous instance -->
     <Runtime executionContext="elevated" />
     <Imports>
-      <Import moduleName="Diagnostics" />
-    </Imports>
-    <Startup>
-      <!-- Counter creating by c# don t have enouth right even with Runtime executionContext=elevated -->
-      <Task commandLine="PerfCounter.cmd" executionContext="elevated" />
-    </Startup>
-  </WorkerRole>
-  <WorkerRole name="WebSearcherManagerRole" vmsize="Standard_A1_v2">
-    <ConfigurationSettings>
-      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
-      <Setting name="SharedStorage" />
-    </ConfigurationSettings>
-    <Runtime executionContext="elevated" />
-    <Imports>
-      <Import moduleName="Diagnostics" />
+      <!-- doesn t seems usefull and raise a lot of error in infra <Import moduleName="Diagnostics" />-->
     </Imports>
     <Startup>
       <!-- Counter creating by c# don t have enouth right even with Runtime executionContext=elevated -->

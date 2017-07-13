@@ -1,0 +1,4 @@
+SocksPort TBD30 IPv6Traffic PreferIPv6 KeepAliveIsolateSOCKSAuth
+ControlPort TBD30
+
+DataDirectory ./ExpertBundle/Data/30

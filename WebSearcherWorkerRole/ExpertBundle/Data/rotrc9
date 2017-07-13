@@ -1,0 +1,4 @@
+SocksPort TBD09 IPv6Traffic PreferIPv6 KeepAliveIsolateSOCKSAuth
+ControlPort TBD09
+
+DataDirectory ./ExpertBundle/Data/9

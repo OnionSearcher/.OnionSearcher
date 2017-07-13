@@ -1,0 +1,11 @@
+AvoidDiskWrites 1
+Log notice stdout
+CookieAuthentication 1
+HiddenServiceStatistics 0
+DataDirectory ./ExpertBundle/Data
+GeoIPFile ./ExpertBundle/Data/g
+GeoIPv6File ./ExpertBundle/Data/g6
+HardwareAccel 1
+SocksTimeout 60
+
+

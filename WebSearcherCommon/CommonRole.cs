@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
@@ -12,7 +11,7 @@ namespace WebSearcherCommon
     {
 
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-
+        
         public override bool OnStart()
         {
             // Set the maximum number of concurrent connections
@@ -31,7 +30,7 @@ namespace WebSearcherCommon
             
             try
             {
-                this.RunAsync(this.cancellationTokenSource.Token).Wait(this.cancellationTokenSource.Token);
+                RunAsync(cancellationTokenSource.Token).Wait(cancellationTokenSource.Token); // RunAsync will be override
             }
             catch (OperationCanceledException)
             {
@@ -45,111 +44,26 @@ namespace WebSearcherCommon
 #endif
             }
         }
-
-        protected async Task TorReStarterAsync(CancellationToken cancellationToken)
-        {
-            if (!TorManager.IsProcessOk())
-            {
-                Trace.TraceWarning("CommonRole is (re)starting Tor");
-                DisposeSubTask(); // stop sending request
-                TorManager.Stop();
-                await Task.Delay(1000, cancellationToken);
-                if (!cancellationToken.IsCancellationRequested)
-                {
-                    await TorManager.StartAsync(cancellationToken);
-                }
-            }
-        }
-
-
-        private List<Task> taskPool;
         
-        protected void CrawlerReStarterAsync(CancellationToken cancellationToken)
-        {
-            if (taskPool == null)
-            {
-#if DEBUG
-                taskPool = new List<Task>(Settings.Default.NbCrawlersPerInstance/2);
-#else
-                taskPool = new List<Task>(Settings.Default.NbCrawlersPerInstance);
-#endif
-                for (int i = 0; i < taskPool.Capacity; i++)
-                    taskPool.Add(null);
-            }
-            for (int i = 0; i < taskPool.Count; i++)
-            {
-                Task task = taskPool[i];
-                if (task != null && (task.IsCanceled || task.IsCompleted || task.IsFaulted))
-                {
-                    task.Dispose();
-                    taskPool[i] = null;
-                }
-                if (taskPool[i] == null && !cancellationToken.IsCancellationRequested)
-                {
-                    taskPool[i] = Task.Run(() =>
-                    {
-                        try
-                        {
-                            CrawlerManager.RunAsync(cancellationToken).Wait(cancellationToken);
-                        }
-                        catch (OperationCanceledException) { }
-                        catch (Exception ex)
-                        {
-                            Trace.TraceError("CrawlerManager.RunAsync Exception : " + ex.GetBaseException().ToString());
-#if DEBUG
-                            if (Debugger.IsAttached) { Debugger.Break(); }
-#endif
-                        }
-                        Trace.TraceInformation("CrawlerManager.RunAsync[" + i.ToString() + "] finish");
-                    }, cancellationToken);
-                }
-            }
-        }
-
+        /// <summary>
+        /// must be override
+        /// </summary>
         virtual protected async Task RunAsync(CancellationToken cancellationToken)
         {
-            await Task.Delay(100, cancellationToken); // pour évtier le warning
-            throw new NotImplementedException("protected async Task RunAsync");
+            await Task.Delay(100, cancellationToken); // just for avoid compil warning of not async
+            throw new NotImplementedException();
         }
 
         public override void OnStop()
         {
-            Trace.TraceInformation("WorkerRole is stopping");
+            Trace.TraceInformation("CommonRole is stopping");
 
-            this.cancellationTokenSource.Cancel();
-            TorManager.Stop();
-            DisposeSubTask();
+            cancellationTokenSource.Cancel();
 
             base.OnStop();
         }
 
         #region IDisposable Support
-        private void DisposeSubTask()
-        {
-            if (taskPool != null)
-            {
-                for (int i = 0; i < taskPool.Count; i++)
-                {
-                    if (taskPool[i] != null)
-                    {
-                        if (!taskPool[i].IsCompleted || !taskPool[i].IsCanceled || !taskPool[i].IsFaulted)
-                            try
-                            {
-                                taskPool[i].Wait(100);
-                            }
-                            catch (OperationCanceledException) { }
-                            catch (AggregateException) { }
-                        try
-                        {
-                            taskPool[i].Dispose();
-                        }
-                        catch (InvalidOperationException) { }
-                        taskPool[i] = null;
-                    }
-                }
-                taskPool = null;
-            }
-        }
 
         private bool disposedValue = false;
         protected virtual void Dispose(bool disposing)
@@ -158,11 +72,9 @@ namespace WebSearcherCommon
             {
                 if (disposing)
                 {
-                    DisposeSubTask();
                     cancellationTokenSource.Dispose();
                     cancellationTokenSource = null;
                 }
-
                 disposedValue = true;
             }
         }

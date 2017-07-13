@@ -23,7 +23,6 @@ BEGIN
 	RETURN @ret
 END
 GO
-GRANT EXECUTE ON TrimTextSearch TO sqlReader
 
 CREATE OR ALTER PROCEDURE Search2(@Keywords NVARCHAR(64), @Page SMALLINT=0, @Full SMALLINT=0) AS  -- have to set a length for @Keywords else bugous results
 BEGIN
@@ -35,23 +34,23 @@ BEGIN
 	SET @UrlsToGetTenResults = 1000 + 1000 * @Page  -- random value in order to expect just 10 final result for first page !
 	
 	DECLARE @MaxResult INT
-	SELECT COUNT(1) FROM FREETEXTTABLE(Pages, *, @Keywords) r
-	SET @MaxResult = @@ROWCOUNT  -- random value in order to expect just 10 final result for first page !
+	SELECT @MaxResult=COUNT(1) FROM FREETEXTTABLE(Pages, *, @Keywords) r
+	SELECT @MaxResult -- returned no called
 
 	IF (@Full=0 AND @MaxResult>10) -- the @@ROWCOUNT>10 should be improved because then low result, the group by may be too string
 	BEGIN
 		SET @MaxResult = CASE WHEN @MaxResult>=@UrlsToGetTenResults THEN 1 WHEN @MaxResult>(100+100*@Page) THEN 2 ELSE 3 END --
 
 		SELECT p2.Url, COALESCE(Title, p2.HiddenService) Title, dbo.TrimTextSearch(@Keywords, InnerText) as InnerText, CrawleError
-				,DATEDIFF(day, LastCrawle,SYSDATETIMEOFFSET()) DaySinceLastCrawle, DATEDIFF(hour, LastCrawle,SYSDATETIMEOFFSET()) HourSinceLastCrawle
+				,DATEDIFF(day, LastCrawle,SYSUTCDATETIME()) DaySinceLastCrawle, DATEDIFF(hour, LastCrawle,SYSUTCDATETIME()) HourSinceLastCrawle
 				,m.HiddenServiceMain
 			FROM (
 				SELECT  Url, r.RANK+@FREETEXTTABLE_Weighting*p.Rank r, ROW_NUMBER() OVER(PARTITION BY HiddenService ORDER BY (r.RANK+@FREETEXTTABLE_Weighting*p.Rank) DESC) n
-					FROM FREETEXTTABLE(Pages, *, @Keywords, LANGUAGE 1033, @UrlsToGetTenResults) r -- 200 : random value in order to expect just 10 final result for first page !
+					FROM FREETEXTTABLE(Pages, *, @Keywords, LANGUAGE 1033, @UrlsToGetTenResults) r
 					INNER JOIN Pages p WITH (NOLOCK) ON p.Url=r.[KEY]
 				) s
-				INNER JOIN Pages p2 ON p2.url=s.url
-				LEFT JOIN HiddenServiceMirrors m ON m.HiddenService=s.url
+				INNER JOIN Pages p2 WITH (NOLOCK) ON p2.url=s.url
+				LEFT JOIN HiddenServiceMirrors m WITH (NOLOCK) ON m.HiddenService=s.url
 			WHERE s.n<=@MaxResult -- may help a little when low result
 			ORDER BY s.r DESC
 			OFFSET @Page*@ResultPerPage ROWS FETCH NEXT @ResultPerPage ROWS ONLY
@@ -60,14 +59,14 @@ BEGIN
 	ELSE
 
 		SELECT Url, COALESCE(Title, p.HiddenService) Title, dbo.TrimTextSearch(@Keywords, InnerText) as InnerText, CrawleError
-					,DATEDIFF(day, LastCrawle,SYSDATETIMEOFFSET()) DaySinceLastCrawle, DATEDIFF(hour, LastCrawle,SYSDATETIMEOFFSET()) HourSinceLastCrawle
+					,DATEDIFF(day, LastCrawle,SYSUTCDATETIME()) DaySinceLastCrawle, DATEDIFF(hour, LastCrawle,SYSUTCDATETIME()) HourSinceLastCrawle
 					,m.HiddenServiceMain
 				FROM FREETEXTTABLE(Pages, *, @Keywords, LANGUAGE 1033, @UrlsToGetTenResults) r
 					INNER JOIN Pages p WITH (NOLOCK) ON p.Url=r.[KEY]
-					LEFT JOIN HiddenServiceMirrors m ON m.HiddenService=r.[KEY]
+					LEFT JOIN HiddenServiceMirrors m WITH (NOLOCK) ON m.HiddenService=r.[KEY]
 				ORDER BY r.RANK+@FREETEXTTABLE_Weighting*p.Rank
 				OFFSET @Page*@ResultPerPage ROWS FETCH NEXT @ResultPerPage ROWS ONLY
-
 END
 GO
 GRANT EXECUTE ON Search2 TO sqlReader
+GO

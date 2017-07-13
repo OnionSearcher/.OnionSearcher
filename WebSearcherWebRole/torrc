@@ -1,4 +1,0 @@
-HiddenServiceDir ./TorExpertBundle/Data
-# Azure default binding are on private IP only : localhost host isn't allowed (this seems strange specialy if you use several application and WS/WCF for communation betweem them)
-HiddenServicePort 80 100.100.100.100.100:80
-FetchHidServDescriptors 0

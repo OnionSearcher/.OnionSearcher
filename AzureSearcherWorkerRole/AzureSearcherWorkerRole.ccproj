@@ -39,18 +39,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Profiles" />
-    <Folder Include="WebSearcherManagerRoleContent\" />
     <Folder Include="WebSearcherWorkerRoleContent" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WebSearcherWorkerRole2\WebSearcherWorkerRole2.csproj">
-      <Name>WebSearcherWorkerRole2</Name>
-      <Project>{d897efc0-4615-4f3f-874a-d6ce8cc46c79}</Project>
-      <Private>True</Private>
-      <RoleType>Worker</RoleType>
-      <RoleName>WebSearcherWorkerRole2</RoleName>
-      <UpdateDiagnosticsConnectionStringOnPublish>True</UpdateDiagnosticsConnectionStringOnPublish>
-    </ProjectReference>
     <ProjectReference Include="..\WebSearcherWorkerRole\WebSearcherWorkerRole.csproj">
       <Name>WebSearcherWorkerRole</Name>
       <Project>{bd7a0adc-4bbd-43dd-b5a5-1ae595805021}</Project>

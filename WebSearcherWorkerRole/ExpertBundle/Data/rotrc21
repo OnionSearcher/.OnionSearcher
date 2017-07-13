@@ -1,0 +1,4 @@
+SocksPort TBD21 IPv6Traffic PreferIPv6 KeepAliveIsolateSOCKSAuth
+ControlPort TBD21
+
+DataDirectory ./ExpertBundle/Data/21

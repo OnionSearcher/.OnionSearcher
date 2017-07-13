@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Web;
 using System.Web.Hosting;
 using System.Web.Mvc;
 using System.Web.Routing;
-using WebSearcherCommon;
 
 namespace WebSearcherWebRole
 {
 
     public class WebSearcherApplication : HttpApplication
     {
-        private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        private Task dequeueBackground;
+
+        public const string PageTitle = ".Onion Searcher";
 
         public static bool IsRetailBuild()
         {
@@ -49,29 +46,12 @@ namespace WebSearcherWebRole
             RouteConfig.RegisterRoutes(RouteTable.Routes);
 
             MvcHandler.DisableMvcResponseHeader = true;
-
-            dequeueBackground = Task.Run(() =>
-            {
-                try
-                {
-                    StorageManager.DequeueAsync(cancellationTokenSource.Token).Wait(cancellationTokenSource.Token);
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    Trace.TraceError("StorageManager.DequeueAsync Exception : " + ex.GetBaseException().ToString());
-#if DEBUG
-                    if (Debugger.IsAttached) { Debugger.Break(); }
-#endif
-                }
-                Trace.TraceInformation("StorageManager.DequeueAsync finish");
-            }, cancellationTokenSource.Token);
         }
 
         protected void Application_PreSendRequestHeaders()
         {
-            Response.Headers.Remove("Server"); // event statics content thanks to runAllManagedModulesForAllRequests
-            // Microsoft-HTTPAPI/2.0 Error 400 Bad Request - Invalid Hostname may still occure
+            Response.Headers.Remove("Server"); // event statics content files thanks to runAllManagedModulesForAllRequests
+            // Microsoft-HTTPAPI/2.0 Error 400 Bad Request - Invalid Hostname may still occure, fixed with a registry flag for httpd service
         }
 
         protected void Application_Error(Object sender, EventArgs e)
@@ -108,24 +88,6 @@ namespace WebSearcherWebRole
         protected void Application_Stop()
         {
             Trace.TraceWarning("WebSearcherApplication.Application_Stop : " + HostingEnvironment.ShutdownReason);
-            cancellationTokenSource.Cancel();
-
-            if (dequeueBackground != null)
-            {
-                if (!dequeueBackground.IsCompleted || !dequeueBackground.IsCanceled || !dequeueBackground.IsFaulted)
-                    try
-                    {
-                        dequeueBackground.Wait(100, cancellationTokenSource.Token);
-                    }
-                    catch (OperationCanceledException) { }
-                    catch (AggregateException) { }
-                try
-                {
-                    dequeueBackground.Dispose();
-                }
-                catch (InvalidOperationException) { }
-                dequeueBackground = null;
-            }
         }
 
     }

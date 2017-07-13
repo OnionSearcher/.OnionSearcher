@@ -2,23 +2,8 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WebSearcherManagerRole" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="ComputeIndexedPagesTaskDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">00:20:00</Value>
-    </Setting>
-    <Setting Name="PagesPurgeTaskDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">01:00:00</Value>
-    </Setting>
-    <Setting Name="UpdatePageRankTaskDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">00:10:00</Value>
-    </Setting>
-    <Setting Name="UpdateHiddenServicesRankDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">00:30:00</Value>
-    </Setting>
     <Setting Name="ScanOldHDDelay" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">01:00:00</Value>
-    </Setting>
-    <Setting Name="FrontHref" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">http://onicoyceokzquk4i.onion/?test</Value>
     </Setting>
     <Setting Name="FrontHrefCheckDelay" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">01:00:00</Value>
@@ -27,10 +12,13 @@
       <Value Profile="(Default)">00:15:00</Value>
     </Setting>
     <Setting Name="TimeBeforeRecycle" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">08:00:00</Value>
+      <Value Profile="(Default)">7.00:00:00</Value>
     </Setting>
-    <Setting Name="MirrorsDetectDelay" Type="System.TimeSpan" Scope="Application">
-      <Value Profile="(Default)">08:00:00</Value>
+    <Setting Name="MainPerfDelay" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">00:25:00</Value>
+    </Setting>
+    <Setting Name="FrontHref" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">http://onicoyceokzquk4i.onion/</Value>
     </Setting>
   </Settings>
 </SettingsFile>

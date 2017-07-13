@@ -3,7 +3,7 @@ CREATE VIEW HiddenServicesToCrawle AS
 	SELECT TOP 100 h.HiddenService
 		FROM HiddenServices h WITH (NOLOCK)
 			LEFT JOIN Pages p ON p.Url=h.HiddenService
-		WHERE DATEADD(hh, 12, p.LastCrawle)<SYSDATETIMEOFFSET()	--= Same as CanCrawle.@MaxRefreshRoot
+		WHERE DATEADD(hh, 12, p.LastCrawle)<SYSUTCDATETIME()	--= Same as CanCrawle.@MaxRefreshRoot
 		ORDER BY p.LastCrawle ASC
 GO
 
@@ -12,11 +12,10 @@ GO
 CREATE VIEW PagesToCrawle AS
 	SELECT TOP 1000 Url
 		FROM Pages WITH (NOLOCK)
-		WHERE LastCrawle<DATEADD(hh, -72, SYSDATETIMEOFFSET())	--= Same as CanCrawle.@MaxRefreshRoot
+		WHERE LastCrawle<DATEADD(hh, -72, SYSUTCDATETIME())	--= Same as CanCrawle.@MaxRefreshRoot
 		ORDER BY NEWID() -- avoid sending a lot of request on the same server like during initial crawle
 GO
 
-DROP VIEW LinkedMirrorsCandidate
 CREATE VIEW LinkedMirrorsCandidate AS
 	SELECT m.HiddenService,m.HiddenServiceTarget,p1.Title,SUBSTRING(p1.InnerText,0,128) InnerText, SUBSTRING(p2.InnerText ,0,128) AS InnerText2
 			,p1.CrawleError,p2.CrawleError AS CrawleError2 -- last should be null
@@ -33,7 +32,7 @@ CREATE VIEW LinkedMirrorsCandidate AS
 			AND NOT EXISTS (SELECT 1 FROM HiddenServiceLinks r WHERE r.HiddenServiceTarget=m.HiddenService AND r.HiddenService=m.HiddenServiceTarget) -- revers
 			AND NOT EXISTS (SELECT 1 FROM HiddenServiceMirrors r WHERE r.HiddenService=m.HiddenService) -- not exists
 GO
-CREATE OR ALTER PROCEDURE MirrorsDetectTask(@ret SMALLINT OUTPUT) AS 
+CREATE OR ALTER PROCEDURE [MirrorsDetectTask](@ret SMALLINT OUTPUT) AS 
 BEGIN
     SET NOCOUNT ON
 	
@@ -47,7 +46,7 @@ BEGIN
 			AND Pref=1 -- may have double, only usefull on this first select, not the finla check
 	IF @@ROWCOUNT>0
 	BEGIN
-			UPDATE HiddenServices SET IndexedPages=1, Rank=-1.0, RankDate= SYSDATETIMEOFFSET()
+			UPDATE HiddenServices SET IndexedPages=1, Rank=-1.0, RankDate=SYSUTCDATETIME()
 				WHERE HiddenService IN (SELECT HiddenService FROM #MirrorsDetected) 
 
 			UPDATE HiddenServices SET RankDate= NULL -- will recompute next time
@@ -61,10 +60,21 @@ BEGIN
 				WHERE l.HiddenService IN (SELECT HiddenService FROM HiddenServiceMirrors) -- optim
 				AND NOT EXISTS (SELECT 1 FROM HiddenServiceMirrors r WHERE  r.HiddenService=l.HiddenService AND r.HiddenServiceMain=l.HiddenServiceTarget) -- keep only the link to the main
 
+		SET @ret=0
 		SELECT TOP 1 @ret=1
 			FROM LinkedMirrorsCandidate
 			WHERE SUBSTRING(InnerText,0,32)=SUBSTRING(InnerText2 ,0,32) -- to be safe
 				AND CrawleError2 IS NULL AND HiddenServiceMainLoopWarning IS NULL AND IndexedPages<=IndexedPages2
+
+		IF @ret=0 -- cleanup only at the very last loop
+			UPDATE m SET m.HiddenServiceMain=c.HiddenServiceMain
+				FROM HiddenServiceMirrors m
+				INNER JOIN HiddenServiceMirrors c ON m.HiddenServiceMain=c.HiddenService
+
+			-- Mirrors cleanup
+			-- DELETE H FROM [HiddenServiceMirrors] h INNER JOIN Pages a ON a.Url=h.HiddenService INNER JOIN Pages m ON m.Url=h.HiddenServiceMain WHERE a.Title != m.Title
+			-- DELETE h FROM HiddenServices h WHERE [Rank]<0 AND NOT EXISTS (SELECT 1 FROM [HiddenServiceMirrors] m WHERE m.[HiddenService]= h.[HiddenService]) -- will be recreated
+
 	END
 	ELSE
 		SET @ret=0
@@ -72,13 +82,14 @@ BEGIN
 	DROP TABLE #MirrorsDetected
 END
 GO
-GRANT EXECUTE ON MirrorsDetectTask TO sqlWriter
+GRANT EXECUTE ON MirrorsDetectTask TO sqlManager
+GO
 
 
 CREATE VIEW HiddenServicesRankToUpdate AS
 	-- @MinHiddenServicesRankRefreshHours INT = 48
 	SELECT HiddenService, RankDate FROM HiddenServices WITH (NOLOCK)
-		WHERE RankDate IS NULL OR DATEADD(hh, 48, RankDate) < SYSDATETIMEOFFSET()
+		WHERE RankDate IS NULL OR DATEADD(hh, 48, RankDate) < SYSUTCDATETIME()
 		--ORDER BY 2 ASC
 GO
 CREATE OR ALTER PROCEDURE UpdateHiddenServicesRankTask(@ret SMALLINT OUTPUT) AS 
@@ -92,7 +103,7 @@ BEGIN
 			,p2.CrawleError, m.HiddenService as Mirror
 			,CAST(0 AS FLOAT) as Rank
 		INTO #RankingHiddenServices
-		FROM (SELECT TOP 10 HiddenService FROM HiddenServicesRankToUpdate WITH (NOLOCK) ORDER BY RankDate ASC) s
+		FROM (SELECT TOP 1000 HiddenService FROM HiddenServicesRankToUpdate WITH (NOLOCK) ORDER BY RankDate ASC) s
 			LEFT JOIN Pages p2 WITH (NOLOCK) ON p2.Url=s.HiddenService
 			LEFT JOIN HiddenServiceMirrors m ON m.HiddenService=s.HiddenService
 	
@@ -124,7 +135,7 @@ BEGIN
 			
 			 -- limit rowlock time
 			UPDATE t
-				SET RankDate = SYSDATETIMEOFFSET()
+				SET RankDate = SYSUTCDATETIME()
 					,IndexedPages = r.IndexedPages
 					,Rank = r.Rank
 				FROM HiddenServices t
@@ -139,13 +150,14 @@ BEGIN
 	DROP TABLE #RankingHiddenServices
 END
 GO
-GRANT EXECUTE ON UpdateHiddenServicesRankTask TO sqlWriter
+GRANT EXECUTE ON UpdateHiddenServicesRankTask TO sqlManager
+GO
 
 
 CREATE VIEW PageRankToUpdate AS
 	-- DECLARE @MinPagesRankRefreshHours INT = 72
 	SELECT Url, HiddenService, RankDate, CrawleError FROM Pages WITH (NOLOCK)
-		WHERE (RankDate IS NULL OR DATEADD(hh, 72, RankDate) < SYSDATETIMEOFFSET()) AND (TITLE IS NOT NULL) -- title is null when never scanned, so stay at a 0 rank 
+		WHERE (RankDate IS NULL OR DATEADD(hh, 72, RankDate) < SYSUTCDATETIME()) AND (TITLE IS NOT NULL) -- title is null when never scanned, so stay at a 0 rank 
 		--ORDER BY 2 ASC
 GO
 CREATE OR ALTER PROCEDURE UpdatePageRankTask(@ret SMALLINT OUTPUT) AS 
@@ -154,7 +166,7 @@ BEGIN
 
 	IF OBJECT_ID('tempdb..#RankingPages') IS NOT NULL
 		DROP TABLE #RankingPages
-	SELECT TOP 100 Url, p.HiddenService, CrawleError, COALESCE(hd.Rank, 0.2) Rank -- hd may not exists, use default
+	SELECT TOP 1000 Url, p.HiddenService, CrawleError, COALESCE(hd.Rank, 0.2) Rank -- hd may not exists, use default
 		INTO #RankingPages
 		FROM PageRankToUpdate p
 			LEFT JOIN HiddenServices hd ON p.HiddenService=hd.HiddenService
@@ -191,7 +203,7 @@ BEGIN
 			
 		-- limit rowlock time
 		UPDATE p
-			SET RankDate = SYSDATETIMEOFFSET()
+			SET RankDate = SYSUTCDATETIME()
 				,Rank = urp.Rank
 			FROM Pages p
 				INNER JOIN #RankingPages urp ON p.Url=urp.Url
@@ -204,7 +216,8 @@ BEGIN
 	DROP TABLE #RankingPages
 END
 GO
-GRANT EXECUTE ON UpdatePageRankTask TO sqlWriter
+GRANT EXECUTE ON UpdatePageRankTask TO sqlManager
+GO
 
 
 CREATE OR ALTER PROCEDURE PagesPurgeTask(@ret SMALLINT OUTPUT) AS 
@@ -213,47 +226,42 @@ BEGIN
 	SET @ret=0
 	-- @MaxPagesPerHiddenService management
 	DECLARE @MaxPagesPerHiddenService INT = 10000 -- go to 9000 after a purge per 1000
-	DECLARE @hiddenService NVARCHAR(37)
-	SELECT TOP 1 @hiddenService=HiddenService FROM Pages WITH (NOLOCK) WHERE RankDate IS NOT NULL GROUP BY HiddenService HAVING COUNT(1)>@MaxPagesPerHiddenService
+	DECLARE @url NVARCHAR(450)
+	SELECT TOP 1 @url=HiddenService FROM Pages WITH (NOLOCK) WHERE RankDate IS NOT NULL GROUP BY HiddenService HAVING COUNT(1)>@MaxPagesPerHiddenService
 	IF @@ROWCOUNT=1
 	BEGIN
-		DELETE FROM Pages WHERE Url IN (SELECT TOP 1000 Url FROM Pages WHERE Url LIKE @hiddenService+'%' AND RankDate IS NOT NULL ORDER BY Rank ASC)  -- will only purge ranked pages
-		IF @@ROWCOUNT>0
-		BEGIN
-			SET @ret=1
-		END
+		SET @ret=1 -- for try next step next run
+		DELETE FROM Pages WHERE Url IN (SELECT TOP 1000 Url FROM Pages WHERE Url LIKE @url+'%' AND RankDate IS NOT NULL ORDER BY Rank ASC)  -- will only purge ranked pages
 	END
-	-- BannedPages management
+	-- Banned management
 	IF @ret=0
 	BEGIN
-		SELECT TOP 1 @hiddenService=Url FROM BannedPages WITH (NOLOCK) WHERE PagesPurge IS NULL
+		SELECT TOP 1 @url=UrlLike FROM BannedUrl WITH (NOLOCK) WHERE PagesPurge IS NULL
 		IF @@ROWCOUNT=1
 		BEGIN
-			DELETE TOP (1000) FROM Pages WHERE Url like @hiddenService + '%'
-			IF @@ROWCOUNT>0
-			BEGIN
-				SET @ret=1
-			END
-			ELSE 
-				UPDATE BannedPages SET PagesPurge=SYSDATETIMEOFFSET() WHERE Url=@hiddenService
+			SET @ret=1 -- for try next step next run
+			DELETE TOP (1000) FROM Pages WHERE Url LIKE @url
+			PRINT @@ROWCOUNT
+			IF @@ROWCOUNT=0
+				UPDATE BannedUrl SET PagesPurge=SYSUTCDATETIME() WHERE UrlLike=@url
 		END
 	END
 	-- Mirror management
 	IF @ret=0
 	BEGIN
+		PRINT 'Mirror'
 		DELETE FROM Pages WHERE Url IN (
 			SELECT TOP 1000 Url
 				FROM HiddenServiceMirrors m WITH (NOLOCK)
 					INNER JOIN Pages p1 WITH (NOLOCK) ON p1.URL LIKE m.HiddenService+'%' AND p1.URL<>p1.HiddenService
 			)
 		IF @@ROWCOUNT>0
-		BEGIN
 			SET @ret=1
-		END
 	END
 END
 GO
-GRANT EXECUTE ON PagesPurgeTask TO sqlWriter
+GRANT EXECUTE ON PagesPurgeTask TO sqlManager
+GO
 
 CREATE OR ALTER PROCEDURE ComputeIndexedPagesTask
 AS
@@ -267,8 +275,5 @@ BEGIN
 
 END
 GO
-GRANT EXECUTE ON ComputeIndexedPagesTask TO sqlWriter
-
-SELECT COUNT(1) FROM 
- [dbo].Pages
-WHERE HiddenService IN (SELECT HiddenService FROM HiddenServiceMirrors)
+GRANT EXECUTE ON ComputeIndexedPagesTask TO sqlManager
+GO

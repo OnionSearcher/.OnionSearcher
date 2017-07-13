@@ -1,8 +1,0 @@
-HiddenServiceDir ./TorExpertBundle/Data
-HiddenServicePort 80 127.0.0.1:80
-FetchHidServDescriptors 0
-
-SocksPort 33200 KeepAliveIsolateSOCKSAuth
-ControlPort 33201
-
-PublishHidServDescriptors 0

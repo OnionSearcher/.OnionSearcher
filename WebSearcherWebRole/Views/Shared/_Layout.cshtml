@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/favicon.ico" />
-    <title>@ViewBag.TitlePrefix .Onion Searcher</title>
+    <title>@ViewBag.TitlePrefix @WebSearcherApplication.PageTitle</title>
 @if (WebSearcherApplication.IsRetailBuild())
 {
     if(ViewBag.FastPageDisplay == true)
@@ -157,7 +157,7 @@ else
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/" onclick="return move('indexScreen');">.Onion Searcher</a>
+                <a class="navbar-brand" href="/" onclick="return move('indexScreen');">@WebSearcherApplication.PageTitle</a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <form class="navbar-form navbar-left" method="get" action="/">
@@ -204,7 +204,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                 <h1>Tor Hidden Services Searcher</h1>
                 <div class="form-group">
                     <div class="input-group input-group-lg">
-                        <input type="text" class="form-control" name="q" id="qIndex" placeholder="Search hidden service for..." maxlength="64"/>
+                        <input type="text" class="form-control" name="q" id="qIndex" placeholder="Search hidden service for..." maxlength="64" value="@ViewBag.Research" />
                         <span class="input-group-btn">
                             <button class="btn btn-default btn-primary" type="submit">SEARCH</button>
                         </span>
@@ -247,7 +247,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     </div>
                     <div class="modal-body">
                         <p>
-                            <textarea  rows="5" class="form-control" id="contactMsg" name="msg" placeholder="A suggestion or an issue to report or  ?" maxlength="8000"></textarea>
+                            <textarea  rows="5" class="form-control" id="contactMsg" name="msg" placeholder="A suggestion, an issue to report or just say hi ?" maxlength="4000"></textarea>
                         </p>
                     </div>
                     <div class="modal-footer">
@@ -264,7 +264,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
             <div class="modal-content">
                 <div class="modal-header">
                     <a href="/" class="close" onclick="return move('indexScreen');">&times;</a>
-                    <h4 class="modal-title">What is .Onion Searcher <small>v@(WebSearcherApplication.GetVersion())</small> ?</h4>
+                    <h4 class="modal-title">What is @WebSearcherApplication.PageTitle <small>v@(WebSearcherApplication.GetVersion())</small> ?</h4>
                 </div>
                 <div class="modal-body">
                     <p class="container">
@@ -302,7 +302,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
 
     <footer>
         <div class="container">
-            <p class="navbar-text text-muted">(dot)Onion Searcher, an open source (contact us) anonymous search engine, tracker free, no-script friendly, ads free, dedicated to the Tor network.</p>
+            <p class="navbar-text text-muted">@WebSearcherApplication.PageTitle is an open source anonymous search engine, tracker free, no-script friendly, ads free, dedicated to the Tor network.</p>
         </div>
     </footer>
 
@@ -318,6 +318,7 @@ else
     <script>
         function move(destScreen)
         {
+            $(".alert-dismissible").remove();
             if(destScreen != screen) switch (screen) {
                 case "addScreen":
                     $(".notIndexScreen").hide();
@@ -366,14 +367,6 @@ else
                     $(".notIndexScreen").show();
                     $(".resultScreen").show();
                     document.getElementById("qNotIndex").focus();
-                    // keywords bold
-                    var keywords = document.getElementById("qNotIndex").value.split(" ");
-                    $(".ResultText").each(function () {
-                        var t = this.innerHTML;
-                        for (var i = 0; i < keywords.length; i++)
-                            t = t.replace(keywords[i], "<b>" + keywords[i] + "</b>");
-                        this.innerHTML = t;
-                    });
                     break;
                 default: // indexScreen
                     $(".indexScreen").show();
@@ -382,10 +375,7 @@ else
             }
             return false;
         }
-        $(function () {
-            move(screen);
-        });
     </script>
-
+    @RenderSection("LateScript", required: false)
 </body>
 </html>

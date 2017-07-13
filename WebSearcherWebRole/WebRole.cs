@@ -11,22 +11,22 @@ namespace WebSearcherWebRole
 
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
+            Trace.TraceInformation("WebRole.RunAsync : Start");
             try
             {
-                DateTime end = DateTime.Now.Add(Settings.Default.TimeBeforeRecycle);
-
-                // main loop
-                while (!cancellationToken.IsCancellationRequested && (DateTime.Now < end))
+                RotManager.TryKillTorIfRequired();
+                using (RotManager rot = new RotManager(0))
                 {
-                    await TorReStarterAsync(cancellationToken);
-
-                    await Task.Delay(20000, cancellationToken);
+                    await rot.WaitStartAsync(cancellationToken);
+                    // main loop
+                    DateTime end = DateTime.Now.Add(Settings.Default.TimeBeforeRecycle);
+                    while (!cancellationToken.IsCancellationRequested && (DateTime.Now < end) && rot.IsProcessOk())
+                    {
+                        await Task.Delay(30000, cancellationToken);
+                    }
                 }
             }
-            catch (OperationCanceledException)
-            {
-                Trace.TraceWarning("WebRole.RunAsync OperationCanceled");
-            }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 Trace.TraceError("WebRole.RunAsync Exception : " + ex.GetBaseException().ToString());
@@ -34,7 +34,14 @@ namespace WebSearcherWebRole
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
             }
-            Trace.TraceInformation("WebRole.RunAsync : wait for a restart");
+            Trace.TraceInformation("WebRole.RunAsync : End");
+        }
+
+        public override void OnStop()
+        {
+            RotManager.TryKillTorIfRequired();
+
+            base.OnStop();
         }
 
     }

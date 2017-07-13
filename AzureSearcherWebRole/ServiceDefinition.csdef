@@ -10,15 +10,14 @@
     </Sites>
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
-      <Setting name="SharedStorage" />
     </ConfigurationSettings>
     <Endpoints>
-      <!-- To randomise on production and set the localhosrt in web/torrc-->
+      <!-- To randomise on production and set the localhosrt in web/rotrc-->
       <InputEndpoint name="EndpointTor" protocol="http" port="12345" localPort="13246" />
     </Endpoints>
     <Runtime executionContext="elevated" />
     <Imports>
-      <Import moduleName="Diagnostics" />
+      <!-- doesn t seems usefull and raise a lot of error in infra <Import moduleName="Diagnostics" />-->
     </Imports>
     <Startup>
       <!-- Remove Microsoft-HTTPAPI/2.0 Server Header for some low level error page -->
