@@ -11,7 +11,26 @@ namespace WebSearcherCommon
     {
 
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-        
+
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            if (e.ExceptionObject is Exception ex)
+            {
+                Trace.TraceError("CommonRole.CurrentDomain_UnhandledException : " + ex.GetBaseException().Message, ex);
+                if(ex is OutOfMemoryException)  // may be raised by System.Net.WebClient.DownloadBitsState.RetrieveBytes
+                {
+                    cancellationTokenSource.Cancel();
+                }
+            }
+            else
+            {
+                Trace.TraceError("CommonRole.CurrentDomain_UnhandledException : NULL");
+            }
+#if DEBUG
+            if (Debugger.IsAttached) { Debugger.Break(); }
+#endif
+        }
+
         public override bool OnStart()
         {
             // Set the maximum number of concurrent connections
@@ -20,6 +39,7 @@ namespace WebSearcherCommon
             bool result = base.OnStart(); // will init azure trace
 
             Trace.TraceInformation("CommonRole is starting");
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             return result;
         }

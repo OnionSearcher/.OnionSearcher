@@ -98,7 +98,7 @@ BEGIN
 
 	IF OBJECT_ID('tempdb..#RankingHiddenServices') IS NOT NULL
 		DROP TABLE #RankingHiddenServices
-	SELECT s.HiddenService, IndexedPages = (SELECT COUNT(1) FROM Pages WITH (NOLOCK) WHERE Pages.Url LIKE s.HiddenService +'%') -- faster than a query on the Pages.HiddenService
+	SELECT s.HiddenService, IndexedPages = (SELECT COUNT(1) FROM Pages WITH (NOLOCK) WHERE Pages.HiddenService = s.HiddenService)
 			,ReferredByHiddenServices = (SELECT COUNT(1) FROM HiddenServiceLinks WITH (NOLOCK) WHERE HiddenServiceTarget = s.HiddenService)
 			,p2.CrawleError, m.HiddenService as Mirror
 			,CAST(0 AS FLOAT) as Rank
@@ -231,7 +231,7 @@ BEGIN
 	IF @@ROWCOUNT=1
 	BEGIN
 		SET @ret=1 -- for try next step next run
-		DELETE FROM Pages WHERE Url IN (SELECT TOP 1000 Url FROM Pages WHERE Url LIKE @url+'%' AND RankDate IS NOT NULL ORDER BY Rank ASC)  -- will only purge ranked pages
+		DELETE FROM Pages WHERE Url IN (SELECT TOP 1000 Url FROM Pages WHERE HiddenService=@url AND RankDate IS NOT NULL ORDER BY Rank ASC)  -- will only purge ranked pages
 	END
 	-- Banned management
 	IF @ret=0
@@ -253,7 +253,7 @@ BEGIN
 		DELETE FROM Pages WHERE Url IN (
 			SELECT TOP 1000 Url
 				FROM HiddenServiceMirrors m WITH (NOLOCK)
-					INNER JOIN Pages p1 WITH (NOLOCK) ON p1.URL LIKE m.HiddenService+'%' AND p1.URL<>p1.HiddenService
+					INNER JOIN Pages p1 WITH (NOLOCK) ON p1.HiddenService=m.HiddenService AND p1.URL<>m.HiddenService
 			)
 		IF @@ROWCOUNT>0
 			SET @ret=1

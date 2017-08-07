@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.UI;
@@ -78,8 +79,6 @@ namespace WebSearcherWebRole
                         }
                     }
 
-                    ViewBag.IsFull = Request.QueryString["f"] == "1"; // result grouped by domain or not
-
                     ShorterCache();
                     using (SqlManager sql = new SqlManager())
                     {
@@ -97,15 +96,56 @@ namespace WebSearcherWebRole
                         {
                             if (hasSW)
                             {
-                                ViewBag.AlertDanger = "Some of your keyword(s) have been removed. Please read the About section for more information on our policy.";
+                                ViewBag.AlertWarning = "Some of your keyword(s) have been removed. Please read the About section for more information on usage and policy.";
                                 q = string.Join(" ", keywords);
                             }
 
                             ViewBag.Research = q;
                             ViewBag.ResearchUrlEncoded = Url.Encode(q);
                             ViewBag.TitlePrefix = q + " - ";
+                            ViewBag.IsFull = Request.QueryString["f"] == "1"; // result grouped by domain or not
 
-                            SearchResultEntity ret = sql.GetSearchResult(q, p, ViewBag.IsFull);
+                            SearchResultEntity ret;
+                            // Advanced search?
+                            if (!keywords[0].Contains(':'))
+                                ret = sql.GetSearchResult(q, p, ViewBag.IsFull);
+                            else
+                            {
+                                Uri url;
+                                if (keywords[0].StartsWith("site:", StringComparison.InvariantCultureIgnoreCase) && keywords[0].Length > 5)
+                                {
+                                    ViewBag.IsFull = null; // removing filtering IHM
+                                    if (Uri.TryCreate((!keywords[0].StartsWith("site:http:") ? "http://" : "") + keywords[0].Substring(5), UriKind.Absolute, out url) && PageEntity.IsTorUri(url))
+                                        ret = sql.GetSearchSiteResult(PageEntity.GetHiddenService(url.ToString()), p);
+                                    else
+                                    {
+                                        ViewBag.AlertDanger = "Error processing the Url. Please check or contact us.";
+                                        return View();
+                                    }
+                                }
+                                else if (keywords[0].StartsWith("cache:", StringComparison.InvariantCultureIgnoreCase) && keywords[0].Length > 6)
+                                {
+                                    ViewBag.IsFull = null; // removing filtering IHM
+                                    if (Uri.TryCreate((!keywords[0].StartsWith("cache:http:") ? "http://" : "") + keywords[0].Substring(6), UriKind.Absolute, out url) && PageEntity.IsTorUri(url))
+                                        ret = sql.GetSearchCachedResult(url.ToString());
+                                    else
+                                    {
+                                        ViewBag.AlertDanger = "Error processing the Url. Please check or contact us.";
+                                        return View();
+                                    }
+                                }
+                                else if (q.StartsWith("intitle:", StringComparison.InvariantCultureIgnoreCase) && q.Length > 8)
+                                    ret = sql.GetSearchTitleResult(q.Substring(8), p, ViewBag.IsFull);
+                                else if (q.StartsWith("allintitle:", StringComparison.InvariantCultureIgnoreCase) && q.Length > 11)
+                                    ret = sql.GetSearchTitleResult(q.Substring(11), p, ViewBag.IsFull);
+                                else if (q.StartsWith("intext:", StringComparison.InvariantCultureIgnoreCase) && q.Length > 7)
+                                    ret = sql.GetSearchInnerTextResult(q.Substring(7), p, ViewBag.IsFull);
+                                else if (q.StartsWith("allintext:", StringComparison.InvariantCultureIgnoreCase) && q.Length > 10)
+                                    ret = sql.GetSearchInnerTextResult(q.Substring(10), p, ViewBag.IsFull);
+                                else // normal search with a ":"
+                                    ret = sql.GetSearchResult(q, p, ViewBag.IsFull);
+                            }
+
                             ViewBag.Results = ret.Results;
                             ViewBag.ResultsTotalNb = ret.ResultsTotalNb;
                             ViewBag.Page = p;
@@ -151,9 +191,7 @@ namespace WebSearcherWebRole
                             return View("Result");
                         }
                         else
-                        {
-                            ViewBag.AlertDanger = "Your keyword(s) have been removed. Please read the About section for more information on our policy. You may use the Contact section if you think there is a mistake.";
-                        }
+                            ViewBag.AlertDanger = "Your keyword(s) have been removed. Please read the About section for more information on usage and policy. You may use the Contact section if you think there is a mistake.";
                     }
                 }
                 else
@@ -208,7 +246,7 @@ namespace WebSearcherWebRole
                     if (!url.StartsWith("http"))
                         url = "http://" + url;
 
-                    if (url.Length < SqlManager.MaxSqlIndex && Uri.TryCreate(url, UriKind.Absolute, out Uri uriResult) && RotManager.IsTorUri(uriResult))
+                    if (url.Length < SqlManager.MaxSqlIndex && Uri.TryCreate(url, UriKind.Absolute, out Uri uriResult) && PageEntity.IsTorUri(uriResult))
                     {
                         url = PageEntity.NormalizeUrl(url);
                         using (SqlManager sql = new SqlManager())
@@ -266,17 +304,33 @@ namespace WebSearcherWebRole
         {
             Trace.TraceInformation("HomeController.About : " + Request.RawUrl);
             ViewBag.TitlePrefix = "About ";
+            
+            return View();
+        }
+        
+
+        public ActionResult Error()
+        {
+            Trace.TraceInformation("HomeController.Error : " + Request.Url);
+
+            HttpStatusCode ret;
+            if (!Enum.TryParse(Request.QueryString.ToString(), out ret))
+            {
+                ret = HttpStatusCode.Forbidden;
+            }
+
+            Response.TrySkipIisCustomErrors = true;
+            Response.StatusCode = (int)ret;
+            ViewBag.TitlePrefix = "ERROR - ";
+            ViewBag.AlertDanger = "ERROR " + (int)ret + " : " + ret;
 
             return View();
         }
 
-        /// <summary>
-        /// private_key, server-status
-        /// </summary>
-        /// <returns></returns>
-        public ActionResult Spam()
+        [ActionNames("server-status", "private_key")]
+        public ActionResult SpamAction()
         {
-            Trace.TraceInformation("HomeController.Spam : " + Request.Url);
+            Trace.TraceInformation("HomeController.SpamAction : " + Request.Url);
             return new RedirectResult("http://127.0.0.1", true); // for fun
         }
 

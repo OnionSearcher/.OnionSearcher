@@ -5,7 +5,10 @@
         {
             <p class="text-muted mb16">
             @(ViewBag.ResultsTotalNb > 1 ? "About "+String.Format("{0:n0}", ViewBag.ResultsTotalNb)+" results." : "One lonely result...")
-            Current results @(ViewBag.IsFull ? "aren't" :"are") filtered, <a href="/?@(ViewBag.IsFull ? "": "f=1&")q=@(ViewBag.ResearchUrlEncoded)">click here to change this</a>.
+            Current results @(ViewBag.IsFull == null || ViewBag.IsFull ? "aren't" :"are") filtered.
+            @if (ViewBag.IsFull != null) {
+            <a href="/?@(ViewBag.IsFull ? "" : "f=1&")q=@(ViewBag.ResearchUrlEncoded)">click here to change this.@ViewBag.IsFull</a>
+            }
             </p>
 
             foreach (PageResultEntity item in ViewBag.Results)

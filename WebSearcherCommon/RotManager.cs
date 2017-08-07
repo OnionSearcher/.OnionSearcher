@@ -13,7 +13,7 @@ namespace WebSearcherCommon
     {
         public const int Rotrc0Port = 12345;// TBD
         private static readonly object gcLock = new object();
-        
+
         //public static async Task WaitFreePort(int port, CancellationToken cancellationToken)
         //{
         //    int wait = 0;
@@ -25,8 +25,10 @@ namespace WebSearcherCommon
         //    if (wait == 3000)
         //        throw new MustRecycleException("Port " + port + " not free after 30 sec");
         //}
-        
-        private static readonly string  basePath = AppDomain.CurrentDomain.BaseDirectory;
+
+        /// <summary>
+        ///  Need to be done by task KillRot.cmd on real Azure Cloud : Runtime executionContext="elevated not enouth or don t work
+        /// </summary>
         public static void TryKillTorIfRequired()
         {
             try
@@ -39,13 +41,6 @@ namespace WebSearcherCommon
             {
                 Trace.TraceWarning("RotManager.killTorIfRequired Exception : " + ex.GetBaseException().Message);  // No right usualy, simple message to keep.
             }
-        }
-
-        public static bool IsTorUri(Uri uri)
-        {
-            return uri != null
-                    && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-                    && uri.DnsSafeHost.EndsWith(".onion") && uri.DnsSafeHost.Length == 22;
         }
         
         private bool hasStarted = false;
@@ -87,7 +82,7 @@ namespace WebSearcherCommon
         }
         
         private Process process;
-
+        private static readonly string basePath = AppDomain.CurrentDomain.BaseDirectory;
         public RotManager(int i)
         {
 #if !DEBUG      // else DEBUG will publish and take the production .onion !

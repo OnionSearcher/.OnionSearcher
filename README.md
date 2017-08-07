@@ -2,6 +2,7 @@
 (dot)Onion Searcher
 
 An open source, anonymous, no-script friendly, ads free, search engine dedicated to the Tor network.
+Advanced search function : cache: site: intitle: intext:
 
 ## TOFIX
 
@@ -13,8 +14,10 @@ An open source, anonymous, no-script friendly, ads free, search engine dedicated
 - Fix CounterRoleStarted.Increment
 - Anonymous Tor process
 - Crawlers stability
-- redirect to / don't work sometime
+- WebException  Bad Request
 - restart new url scan on old hd and page to fix (no gode right and need a proc)
+- ban redirection on normal web
+- ssl error "A call to SSPI failed" / "The function requested is not supported"
 - Manage redirect like a new Url
 - WebException  Bad Gateway
 
@@ -24,6 +27,8 @@ An open source, anonymous, no-script friendly, ads free, search engine dedicated
 - Improve full text search
 - Better english
 - Abuse/Report system for user
+- Support site: and links: inurl: link:  allinurl:  inurl:
+- Filter HTTP200 page with HTTP Error text only
 
 ## Contributing
 
@@ -34,7 +39,7 @@ Requirement :
     - Azure developement
     - Data storage and processing
 - Have an SQL Server database
-- Download Tor Expert Bundle to the folder WebSearcherCommon\ExpertBundle (and rename files tor.exe as rot.exe)
+- Download Tor Expert Bundle https://www.torproject.org/download/download.html.en to the folder WebSearcherCommon\ExpertBundle
 - Download the lib https://github.com/OnionSearcher/BetterHttpClient.git to the folder ..\BetterHttpClient
 
 Whishlist :

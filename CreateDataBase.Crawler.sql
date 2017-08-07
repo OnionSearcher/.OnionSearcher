@@ -1,4 +1,4 @@
-CREATE OR ALTER PROCEDURE CheckCanCrawle(@Url NVARCHAR(450), @ret SMALLINT OUTPUT) AS 
+CREATE OR ALTER PROCEDURE CheckCanCrawle(@Url NVARCHAR(450), @ret TINYINT OUTPUT) AS 
 BEGIN
     SET NOCOUNT ON
 	DECLARE @MaxPagesPerHiddenService INT=10000 -- go to 9000 after a purge per 1000
@@ -36,58 +36,23 @@ BEGIN
 END
 GO
 
-CREATE MESSAGE TYPE CrawleRequestType VALIDATION=NONE
-GO
-CREATE CONTRACT CrawleRequestP1UserPageContract (CrawleRequestType SENT BY INITIATOR)
-CREATE CONTRACT CrawleRequestP2N1PageContract (CrawleRequestType SENT BY INITIATOR)
-CREATE CONTRACT CrawleRequestP3ExternalLinkContract (CrawleRequestType SENT BY INITIATOR)
-CREATE CONTRACT CrawleRequestP4N2PageContract (CrawleRequestType SENT BY INITIATOR)
-CREATE CONTRACT CrawleRequestP5N3PageContract (CrawleRequestType SENT BY INITIATOR)
-CREATE CONTRACT CrawleRequestP6RetryContract (CrawleRequestType SENT BY INITIATOR)
-GO
-CREATE QUEUE CrawleRequestsInitiatorQueue WITH STATUS=ON, RETENTION=OFF, POISON_MESSAGE_HANDLING (STATUS=ON) 
-CREATE SERVICE CrawleRequestInitiatorService ON QUEUE CrawleRequestsInitiatorQueue
-GO
-CREATE QUEUE CrawleRequestsTargetQueue WITH STATUS=ON, RETENTION=OFF, POISON_MESSAGE_HANDLING (STATUS=ON) 
-CREATE SERVICE CrawleRequestTargetService ON QUEUE CrawleRequestsTargetQueue (CrawleRequestP1UserPageContract,CrawleRequestP2N1PageContract,CrawleRequestP3ExternalLinkContract,CrawleRequestP4N2PageContract,CrawleRequestP5N3PageContract,CrawleRequestP6RetryContract)
-GO
-CREATE BROKER PRIORITY CrawleRequestP1UserPagePriority FOR CONVERSATION 
-SET (CONTRACT_NAME=CrawleRequestP1UserPageContract, LOCAL_SERVICE_NAME=ANY, REMOTE_SERVICE_NAME='ANY', PRIORITY_LEVEL=9)
-CREATE BROKER PRIORITY CrawleRequestP2N1PagePriority FOR CONVERSATION  
-SET (CONTRACT_NAME=CrawleRequestP2N1PageContract, LOCAL_SERVICE_NAME=ANY, REMOTE_SERVICE_NAME='ANY', PRIORITY_LEVEL=8)
-CREATE BROKER PRIORITY CrawleRequestP3ExternalLinkPriority FOR CONVERSATION  
-SET (CONTRACT_NAME=CrawleRequestP3ExternalLinkContract, LOCAL_SERVICE_NAME=ANY, REMOTE_SERVICE_NAME='ANY', PRIORITY_LEVEL=6)
-CREATE BROKER PRIORITY CrawleRequestP4N2PagePriority FOR CONVERSATION  
-SET (CONTRACT_NAME=CrawleRequestP4N2PageContract, LOCAL_SERVICE_NAME=ANY, REMOTE_SERVICE_NAME='ANY', PRIORITY_LEVEL=4)
-CREATE BROKER PRIORITY CrawleRequestP5N3PagePriority FOR CONVERSATION  
-SET (CONTRACT_NAME=CrawleRequestP5N3PageContract, LOCAL_SERVICE_NAME=ANY, REMOTE_SERVICE_NAME='ANY', PRIORITY_LEVEL=2)
-CREATE BROKER PRIORITY CrawleRequestP6RetryPriority FOR CONVERSATION  
-SET (CONTRACT_NAME=CrawleRequestP6RetryContract, LOCAL_SERVICE_NAME=ANY, REMOTE_SERVICE_NAME='ANY', PRIORITY_LEVEL=1)
-GO
 
-CREATE OR ALTER PROCEDURE CrawleRequestEnqueue(@Url NVARCHAR(450), @prio SMALLINT) AS 
+CREATE OR ALTER PROCEDURE CrawleRequestEnqueue(@Url NVARCHAR(450), @prio TINYINT) AS 
 BEGIN
     SET NOCOUNT ON
-	DECLARE @InitDlgHandle UNIQUEIDENTIFIER
 
 	DECLARE @canCrawle SMALLINT
 	EXEC CheckCanCrawle @Url, @canCrawle OUTPUT
 	IF @canCrawle=1
 	BEGIN
-		IF @prio=1
-			BEGIN DIALOG @InitDlgHandle FROM SERVICE CrawleRequestInitiatorService TO SERVICE 'CrawleRequestTargetService' ON CONTRACT CrawleRequestP1UserPageContract WITH LIFETIME=2678400, ENCRYPTION=OFF; -- 60*60*24*31
-		ELSE IF @prio=2
-			BEGIN DIALOG @InitDlgHandle FROM SERVICE CrawleRequestInitiatorService TO SERVICE 'CrawleRequestTargetService' ON CONTRACT CrawleRequestP2N1PageContract WITH LIFETIME=2678400, ENCRYPTION=OFF; -- 60*60*24*31
-		ELSE IF @prio=3
-			BEGIN DIALOG @InitDlgHandle FROM SERVICE CrawleRequestInitiatorService TO SERVICE 'CrawleRequestTargetService' ON CONTRACT CrawleRequestP3ExternalLinkContract WITH LIFETIME=1209600, ENCRYPTION=OFF; -- 60*60*24*14
-		ELSE IF @prio=4
-			BEGIN DIALOG @InitDlgHandle FROM SERVICE CrawleRequestInitiatorService TO SERVICE 'CrawleRequestTargetService' ON CONTRACT CrawleRequestP4N2PageContract WITH LIFETIME=604800, ENCRYPTION=OFF; -- 60*60*24*7
-		ELSE IF @prio=5
-			BEGIN DIALOG @InitDlgHandle FROM SERVICE CrawleRequestInitiatorService TO SERVICE 'CrawleRequestTargetService' ON CONTRACT CrawleRequestP5N3PageContract WITH LIFETIME=172800, ENCRYPTION=OFF; -- 60*60*24*2
-		ELSE -- @prio=6
-			BEGIN DIALOG @InitDlgHandle FROM SERVICE CrawleRequestInitiatorService TO SERVICE 'CrawleRequestTargetService' ON CONTRACT CrawleRequestP6RetryContract WITH LIFETIME=86400, ENCRYPTION=OFF; -- 60*60*24*1
-
-		SEND ON CONVERSATION @InitDlgHandle MESSAGE TYPE CrawleRequestType(@Url)
+		BEGIN TRY 
+			INSERT INTO CrawleRequest VALUES (@Url, @prio, DATEADD(DAY,
+				CASE @prio WHEN 1 THEN 31 WHEN 2 THEN 14 WHEN 3 THEN 7 WHEN 4 THEN 3 WHEN 5 THEN 2 ELSE 1 END 
+				, SYSUTCDATETIME()))
+		END TRY
+		BEGIN CATCH	-- unicity check by PK
+			SET @canCrawle = 0 -- dummy
+		END CATCH
 	END
 END
 GO
@@ -95,53 +60,38 @@ GRANT EXECUTE ON CrawleRequestEnqueue TO sqlWriter
 GRANT EXECUTE ON CrawleRequestEnqueue TO sqlReader
 GO
 
-CREATE OR ALTER PROCEDURE CrawleRequestDequeue(@Url NVARCHAR(450) OUTPUT) AS 
+CREATE OR ALTER PROCEDURE CrawleRequestMassEnqueue(@Urls NVARCHAR(MAX), @prio TINYINT) AS 
 BEGIN
     SET NOCOUNT ON
-	DECLARE @canCrawle SMALLINT=0
-	DECLARE @RecvReplyDlgHandle UNIQUEIDENTIFIER
-	SET @Url=NULL
+	DECLARE @Url NVARCHAR(450)
+	DECLARE db_cursor CURSOR FOR 
+		SELECT value FROM STRING_SPLIT(@Urls, CHAR(13)) -- \r
+	OPEN db_cursor  
+	FETCH NEXT FROM db_cursor INTO @Url  
 
-	WHILE (@canCrawle=0)
-	BEGIN
-		RECEIVE TOP(1) @Url=message_body, @RecvReplyDlgHandle=conversation_handle FROM CrawleRequestsTargetQueue --ORDER BY [priority] DESC, NEWID() -- avoid sending a lot of request on the same server in same time
+	WHILE @@FETCH_STATUS = 0  
+	BEGIN  
+		EXEC CrawleRequestEnqueue @Url, @prio
+		FETCH NEXT FROM db_cursor INTO @Url  
+	END  
 
-		IF @Url IS NOT NULL
-		BEGIN
-			END CONVERSATION @RecvReplyDlgHandle
-			EXEC CheckCanCrawle @Url, @canCrawle OUTPUT
-		END
-		ELSE
-			SET @canCrawle=1 -- exit loop with no result
+	CLOSE db_cursor  
+	DEALLOCATE db_cursor 
+END
+GO
+GRANT EXECUTE ON CrawleRequestMassEnqueue TO sqlWriter
+GO
 
-	END
+CREATE OR ALTER PROCEDURE CrawleRequestDequeue AS 
+BEGIN
+    SET NOCOUNT ON;
+
+	-- no CheckCanCrawle : the Url have been checked on insert and is unique in queue
+	WITH t AS (SELECT TOP(1) Url FROM CrawleRequest WITH (ROWLOCK, READPAST) ORDER BY Priority, ExpireDate)
+		DELETE FROM t
+		OUTPUT deleted.Url;
+
 END
 GO
 GRANT EXECUTE ON CrawleRequestDequeue TO sqlWriter
 GO
-
-
-
-
-DECLARE @canCrawle NVARCHAR(450)
-exec CrawleRequestDequeue @canCrawle OUTPUT
-SELECT @canCrawle
-
-
-declare @conversation uniqueidentifier
-while exists (select 1 from sys.transmission_queue )
-begin
-set @conversation=(select top 1 conversation_handle from sys.transmission_queue )
-end conversation @conversation with cleanup
-end
-
-declare @conversation uniqueidentifier
-while exists (select 1 FROM [websearcher-sql].[dbo].CrawleRequestsInitiatorQueue WITH(NOLOCK) )
-begin
-set @conversation=(select top 1 conversation_handle FROM [websearcher-sql].[dbo].CrawleRequestsInitiatorQueue WITH(NOLOCK) )
-end conversation @conversation with cleanup
-end
-
-
-SELECT conversation_handle FROM [websearcher-sql].[dbo].CrawleRequestsInitiatorQueue WITH(NOLOCK)
-

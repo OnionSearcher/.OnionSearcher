@@ -26,8 +26,7 @@ namespace WebSearcherWorkerRole
                     taskPool.Add(null);
 
                 // main loop
-                DateTime end = DateTime.Now.Add(Settings.Default.TimeBeforeRecycle);
-                while (!cancellationToken.IsCancellationRequested && (DateTime.Now < end))
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     for (int i = 0; !cancellationToken.IsCancellationRequested && i < taskPool.Count; i++)
                     {
@@ -91,7 +90,7 @@ namespace WebSearcherWorkerRole
                                     else if (!cancellationToken.IsCancellationRequested)  // fail requeue the URL en P5
                                         using (SqlManager sql = new SqlManager())
                                         {
-                                            await sql.CrawleRequestEnqueueAsync(url, 6, cancellationToken);
+                                            await sql.CrawleRequestEnqueueAsync(url, cancellationToken);
                                         }
                                 }
                                 else // empty queue (what a dream!)

@@ -22,6 +22,9 @@
     <Startup>
       <!-- Remove Microsoft-HTTPAPI/2.0 Server Header for some low level error page -->
       <Task commandLine="Configure_HTTP.SYS.cmd" executionContext="elevated" />
+      <!-- c# don t have enouth right even with Runtime executionContext=elevated -->
+      <Task commandLine="KillRot.cmd" executionContext="elevated" />
+      <Task commandLine="FullRestart.cmd" executionContext="elevated" />
     </Startup>
   </WebRole>
 </ServiceDefinition>

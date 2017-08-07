@@ -125,7 +125,7 @@ ALTER FULLTEXT STOPLIST SearchStoplist ADD 'utc' LANGUAGE 1033;ALTER FULLTEXT ST
 ALTER FULLTEXT STOPLIST SearchStoplist ADD 'version' LANGUAGE 1033;ALTER FULLTEXT STOPLIST SearchStoplist ADD 'version' LANGUAGE 'Neutral';
 ALTER FULLTEXT STOPLIST SearchStoplist ADD 'view' LANGUAGE 1033;ALTER FULLTEXT STOPLIST SearchStoplist ADD 'view' LANGUAGE 'Neutral';
 ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 1033;ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 'Neutral';
--- stop helping fucking pedo.... (list not commited for not helping giving keywords...)
+-- don t help fucking ped.... (list not commited for not helping giving keywords...)
 GO
 GRANT VIEW DEFINITION ON FULLTEXT STOPLIST :: SearchStoplist TO sqlReader; -- For retreive STOPWORDS
 GO
@@ -144,6 +144,8 @@ CREATE TABLE Pages
 	RankDate DATETIME2(2)
 )
 ALTER TABLE Pages ADD CONSTRAINT PK_Pages PRIMARY KEY CLUSTERED (Url)
+CREATE NONCLUSTERED INDEX IX_Pages ON Pages (HiddenService)
+GO
 GO
 GRANT SELECT, INSERT, UPDATE, DELETE ON Pages TO sqlWriter -- require for the MERGE and direct DELETE
 GO
@@ -206,4 +208,17 @@ CREATE TABLE ContactMessages
 CREATE CLUSTERED INDEX IX_ContactMessages ON ContactMessages (Date)
 GO
 GRANT INSERT ON ContactMessages TO sqlReader -- new user messave
+GO
+
+
+CREATE TABLE CrawleRequest
+(
+	Url NVARCHAR(450) NOT NULL,
+	Priority TINYINT NOT NULL,
+	ExpireDate DATETIME2(2) NOT NULL
+)
+ALTER TABLE CrawleRequest ADD CONSTRAINT PK_CrawleRequest PRIMARY KEY CLUSTERED (Url)
+CREATE NONCLUSTERED INDEX IX_CrawleRequest ON CrawleRequest (Priority,ExpireDate)
+GO
+GRANT SELECT,INSERT,DELETE ON CrawleRequest TO sqlManager -- purge expired by jog SQL + rescan self hd
 GO

@@ -1,98 +1,12 @@
 USE master
+GO
 
 CREATE LOGIN sqlManager WITH PASSWORD='PASSWORD'
 CREATE LOGIN sqlReader WITH PASSWORD='PASSWORD'
 CREATE LOGIN sqlWriter WITH PASSWORD='PASSWORD'
-
-ALTER DATABASE [websearcher-sql] SET ENABLE_BROKER
-ALTER DATABASE [websearcher-sql] SET HONOR_BROKER_PRIORITY ON
 GO
 
 USE [msdb]
-GO
-
-/****** Object:  Job [ManagerTaskLong]    Script Date: 08/07/2017 13:57:25 ******/
-BEGIN TRANSACTION
-DECLARE @ReturnCode INT
-SELECT @ReturnCode=0
-
-DECLARE @jobId BINARY(16)
-EXEC @ReturnCode= msdb.dbo.sp_add_job @job_name=N'ManagerTaskLong', 
-		@enabled=1, 
-		@notify_level_eventlog=0, 
-		@notify_level_email=0, 
-		@notify_level_netsend=0, 
-		@notify_level_page=0, 
-		@delete_level=0, 
-		@description=N'No description available.', 
-		@category_name=N'Data Collector', 
-		@owner_login_name=N'sqlManager', @job_id=@jobId OUTPUT
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [MirrorsDetectTask]    Script Date: 08/07/2017 13:57:25 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'MirrorsDetectTask', 
-		@step_id=1, 
-		@cmdexec_success_code=0, 
-		@on_success_action=3, 
-		@on_success_step_id=0, 
-		@on_fail_action=2, 
-		@on_fail_step_id=0, 
-		@retry_attempts=0, 
-		@retry_interval=0, 
-		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'DECLARE @ret SMALLINT=1
-WHILE @ret=1
-BEGIN
-	PRINT ''MirrorsDetectTask - '' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
-	EXEC MirrorsDetectTask @ret OUT
-	WAITFOR DELAY ''00:00:05''
-END', 
-		@database_name=N'websearcher-sql', 
-		@flags=4
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [PagesPurgeTask]    Script Date: 08/07/2017 13:57:25 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'PagesPurgeTask', 
-		@step_id=2, 
-		@cmdexec_success_code=0, 
-		@on_success_action=1, 
-		@on_success_step_id=0, 
-		@on_fail_action=2, 
-		@on_fail_step_id=0, 
-		@retry_attempts=0, 
-		@retry_interval=0, 
-		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'DECLARE @ret SMALLINT=1
-WHILE @ret=1
-BEGIN
-	PRINT ''PagesPurgeTask - '' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
-	EXEC PagesPurgeTask @ret OUT
-	WAITFOR DELAY ''00:00:05''
-END', 
-		@database_name=N'websearcher-sql', 
-		@flags=4
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_update_job @job_id=@jobId, @start_step_id=1
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0100 FROM 0000 TO 2300', 
-		@enabled=1, 
-		@freq_type=4, 
-		@freq_interval=1, 
-		@freq_subday_type=8, 
-		@freq_subday_interval=1, 
-		@freq_relative_interval=0, 
-		@freq_recurrence_factor=0, 
-		@active_start_date=20170705, 
-		@active_end_date=99991231, 
-		@active_start_time=0, 
-		@active_end_time=235959, 
-		@schedule_uid=N'd41TBD6f-93c5-4239-af4e-65562a909c08'
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_add_jobserver @job_id=@jobId, @server_name=N'(local)'
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-COMMIT TRANSACTION
-GOTO EndSave
-QuitWithRollback:
-    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
-EndSave:
 GO
 
 /****** Object:  Job [ManagerTaskFast]    Script Date: 08/07/2017 13:57:22 ******/
@@ -195,13 +109,13 @@ QuitWithRollback:
 EndSave:
 GO
 
-/****** Object:  Job [DbaTaskAlt]    Script Date: 08/07/2017 13:57:18 ******/
+/****** Object:  Job [ManagerTaskLong]    Script Date: 22/07/2017 07:29:37 ******/
 BEGIN TRANSACTION
 DECLARE @ReturnCode INT
-SELECT @ReturnCode=0
+SELECT @ReturnCode = 0
 
 DECLARE @jobId BINARY(16)
-EXEC @ReturnCode= msdb.dbo.sp_add_job @job_name=N'DbaTaskAlt', 
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'ManagerTaskLong', 
 		@enabled=1, 
 		@notify_level_eventlog=0, 
 		@notify_level_email=0, 
@@ -209,68 +123,11 @@ EXEC @ReturnCode= msdb.dbo.sp_add_job @job_name=N'DbaTaskAlt',
 		@notify_level_page=0, 
 		@delete_level=0, 
 		@description=N'No description available.', 
-		@category_name=N'Database Maintenance', 
-		@owner_login_name=N'websearcherdb\samfavstromal', @job_id=@jobId OUTPUT
+		@category_name=N'Data Collector', 
+		@owner_login_name=N'sqlManager', @job_id = @jobId OUTPUT
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [Pages REORGANIZE]    Script Date: 08/07/2017 13:57:18 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Pages REORGANIZE', 
-		@step_id=1, 
-		@cmdexec_success_code=0, 
-		@on_success_action=1, 
-		@on_success_step_id=0, 
-		@on_fail_action=2, 
-		@on_fail_step_id=0, 
-		@retry_attempts=0, 
-		@retry_interval=0, 
-		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'ALTER INDEX ALL ON Pages REORGANIZE', 
-		@database_name=N'websearcher-sql', 
-		@flags=4
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_update_job @job_id=@jobId, @start_step_id=1
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0200 FROM 0130 TO 2330', 
-		@enabled=1, 
-		@freq_type=4, 
-		@freq_interval=1, 
-		@freq_subday_type=8, 
-		@freq_subday_interval=2, 
-		@freq_relative_interval=0, 
-		@freq_recurrence_factor=0, 
-		@active_start_date=20170702, 
-		@active_end_date=99991231, 
-		@active_start_time=13000, 
-		@active_end_time=235959, 
-		@schedule_uid=N'4681dfdd-afae-44fd-b744-89d651ba0069'
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_add_jobserver @job_id=@jobId, @server_name=N'(local)'
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-COMMIT TRANSACTION
-GOTO EndSave
-QuitWithRollback:
-    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
-EndSave:
-GO
-
-/****** Object:  Job [DbaTask]    Script Date: 08/07/2017 13:57:15 ******/
-BEGIN TRANSACTION
-DECLARE @ReturnCode INT
-SELECT @ReturnCode=0
-
-DECLARE @jobId BINARY(16)
-EXEC @ReturnCode= msdb.dbo.sp_add_job @job_name=N'DbaTask', 
-		@enabled=1, 
-		@notify_level_eventlog=0, 
-		@notify_level_email=0, 
-		@notify_level_netsend=0, 
-		@notify_level_page=0, 
-		@delete_level=0, 
-		@description=N'No description available.', 
-		@category_name=N'Database Maintenance', 
-		@owner_login_name=N'websearcherdb\samfavstromal', @job_id=@jobId OUTPUT
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [BannedUrl REORGANIZE]    Script Date: 08/07/2017 13:57:15 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'BannedUrl REORGANIZE', 
+/****** Object:  Step [SelfPing]    Script Date: 22/07/2017 07:29:37 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'SelfPing', 
 		@step_id=1, 
 		@cmdexec_success_code=0, 
 		@on_success_action=3, 
@@ -280,13 +137,12 @@ EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'BannedUrl 
 		@retry_attempts=0, 
 		@retry_interval=0, 
 		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'ALTER INDEX ALL ON BannedUrl REORGANIZE
-WAITFOR DELAY ''00:00:05''', 
+		@command=N'INSERT INTO [CrawleRequest] ([Url],[Priority],[ExpireDate]) VALUES (''http://onicoyceokzquk4i.onion/?ping'',1,CURRENT_TIMESTAMP+1)', 
 		@database_name=N'websearcher-sql', 
 		@flags=0
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [HiddenServices REORGANIZE]    Script Date: 08/07/2017 13:57:15 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServices REORGANIZE', 
+/****** Object:  Step [MirrorsDetectTask]    Script Date: 22/07/2017 07:29:37 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'MirrorsDetectTask', 
 		@step_id=2, 
 		@cmdexec_success_code=0, 
 		@on_success_action=3, 
@@ -296,13 +152,18 @@ EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServ
 		@retry_attempts=0, 
 		@retry_interval=0, 
 		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'ALTER INDEX ALL ON HiddenServices REORGANIZE
-WAITFOR DELAY ''00:00:05''', 
+		@command=N'DECLARE @ret SMALLINT=1
+WHILE @ret = 1
+BEGIN
+	PRINT ''MirrorsDetectTask - '' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
+	EXEC MirrorsDetectTask @ret OUT
+	WAITFOR DELAY ''00:00:02''
+END', 
 		@database_name=N'websearcher-sql', 
 		@flags=4
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [HiddenServiceMirrors REORGANIZE]    Script Date: 08/07/2017 13:57:15 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServiceMirrors REORGANIZE', 
+/****** Object:  Step [PagesPurgeTask]    Script Date: 22/07/2017 07:29:37 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'PagesPurgeTask', 
 		@step_id=3, 
 		@cmdexec_success_code=0, 
 		@on_success_action=3, 
@@ -312,46 +173,19 @@ EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServ
 		@retry_attempts=0, 
 		@retry_interval=0, 
 		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'ALTER INDEX ALL ON HiddenServiceMirrors REORGANIZE
-WAITFOR DELAY ''00:00:05''', 
+		@command=N'DECLARE @ret SMALLINT=1
+WHILE @ret = 1
+BEGIN
+	PRINT ''PagesPurgeTask - '' + CAST(CURRENT_TIMESTAMP AS VARCHAR)
+	EXEC PagesPurgeTask @ret OUT
+	WAITFOR DELAY ''00:00:02''
+END', 
 		@database_name=N'websearcher-sql', 
 		@flags=4
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [HiddenServiceLinks REORGANIZE]    Script Date: 08/07/2017 13:57:15 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServiceLinks REORGANIZE', 
+/****** Object:  Step [CrawleRequest Purge]    Script Date: 22/07/2017 07:29:37 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRequest Purge', 
 		@step_id=4, 
-		@cmdexec_success_code=0, 
-		@on_success_action=3, 
-		@on_success_step_id=0, 
-		@on_fail_action=2, 
-		@on_fail_step_id=0, 
-		@retry_attempts=0, 
-		@retry_interval=0, 
-		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'ALTER INDEX ALL ON HiddenServiceLinks REORGANIZE
-WAITFOR DELAY ''00:00:05''', 
-		@database_name=N'websearcher-sql', 
-		@flags=4
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [SearchCatalog REORGANIZE]    Script Date: 08/07/2017 13:57:15 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'SearchCatalog REORGANIZE', 
-		@step_id=5, 
-		@cmdexec_success_code=0, 
-		@on_success_action=3, 
-		@on_success_step_id=0, 
-		@on_fail_action=2, 
-		@on_fail_step_id=0, 
-		@retry_attempts=0, 
-		@retry_interval=0, 
-		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'ALTER FULLTEXT CATALOG SearchCatalog REORGANIZE
-WAITFOR DELAY ''00:00:05''', 
-		@database_name=N'websearcher-sql', 
-		@flags=4
-IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [sp_updatestats]    Script Date: 08/07/2017 13:57:15 ******/
-EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'sp_updatestats', 
-		@step_id=6, 
 		@cmdexec_success_code=0, 
 		@on_success_action=1, 
 		@on_success_step_id=0, 
@@ -360,27 +194,27 @@ EXEC @ReturnCode=msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'sp_updates
 		@retry_attempts=0, 
 		@retry_interval=0, 
 		@os_run_priority=0, @subsystem=N'TSQL', 
-		@command=N'EXEC sp_updatestats', 
+		@command=N'DELETE FROM [CrawleRequest] WHERE [ExpireDate]<SYSDATETIME()', 
 		@database_name=N'websearcher-sql', 
 		@flags=4
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_update_job @job_id=@jobId, @start_step_id=1
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0200 FROM 0030 TO 2230', 
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0100 FROM 0000 TO 2300', 
 		@enabled=1, 
 		@freq_type=4, 
 		@freq_interval=1, 
 		@freq_subday_type=8, 
-		@freq_subday_interval=2, 
+		@freq_subday_interval=1, 
 		@freq_relative_interval=0, 
 		@freq_recurrence_factor=0, 
 		@active_start_date=20170705, 
 		@active_end_date=99991231, 
-		@active_start_time=3000, 
+		@active_start_time=0, 
 		@active_end_time=235959, 
-		@schedule_uid=N'bb715038-04e2-4e04-9384-f51383a2dcca'
+		@schedule_uid=N'd416016f-93c5-4239-af4e-65562a909c08'
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode=msdb.dbo.sp_add_jobserver @job_id=@jobId, @server_name=N'(local)'
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
 COMMIT TRANSACTION
 GOTO EndSave
@@ -458,6 +292,301 @@ QuitWithRollback:
 EndSave:
 GO
 
+/****** Object:  Job [DbaOptimTask1]    Script Date: 22/07/2017 07:30:53 ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'DbaOptimTask1', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'Database Maintenance', 
+		@owner_login_name=N'websearcherdb\samfavstromal', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [BannedUrl REORGANIZE]    Script Date: 22/07/2017 07:30:53 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'BannedUrl REORGANIZE', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'ALTER INDEX ALL ON BannedUrl REORGANIZE
+WAITFOR DELAY ''00:00:05''', 
+		@database_name=N'websearcher-sql', 
+		@flags=0
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [HiddenServices REORGANIZE]    Script Date: 22/07/2017 07:30:53 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServices REORGANIZE', 
+		@step_id=2, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'ALTER INDEX ALL ON HiddenServices REORGANIZE
+WAITFOR DELAY ''00:00:05''', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [HiddenServiceMirrors REORGANIZE]    Script Date: 22/07/2017 07:30:53 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServiceMirrors REORGANIZE', 
+		@step_id=3, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'ALTER INDEX ALL ON HiddenServiceMirrors REORGANIZE
+WAITFOR DELAY ''00:00:05''', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [HiddenServiceLinks REORGANIZE]    Script Date: 22/07/2017 07:30:53 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'HiddenServiceLinks REORGANIZE', 
+		@step_id=4, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'ALTER INDEX ALL ON HiddenServiceLinks REORGANIZE
+WAITFOR DELAY ''00:00:05''', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [SearchCatalog REORGANIZE]    Script Date: 22/07/2017 07:30:53 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'SearchCatalog REORGANIZE', 
+		@step_id=5, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'ALTER FULLTEXT CATALOG SearchCatalog REORGANIZE', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0400 FROM 0030 TO 2030', 
+		@enabled=1, 
+		@freq_type=4, 
+		@freq_interval=1, 
+		@freq_subday_type=8, 
+		@freq_subday_interval=4, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=0, 
+		@active_start_date=20170705, 
+		@active_end_date=99991231, 
+		@active_start_time=3000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'bb715038-04e2-4e04-9384-f51383a2dcca'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
+/****** Object:  Job [DbaOptimTask2]    Script Date: 22/07/2017 07:30:56 ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'DbaOptimTask2', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'Database Maintenance', 
+		@owner_login_name=N'websearcherdb\samfavstromal', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [Pages REORGANIZE]    Script Date: 22/07/2017 07:30:56 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Pages REORGANIZE', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'ALTER INDEX ALL ON Pages REORGANIZE', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0400 FROM 0130 TO 2130', 
+		@enabled=1, 
+		@freq_type=4, 
+		@freq_interval=1, 
+		@freq_subday_type=8, 
+		@freq_subday_interval=4, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=0, 
+		@active_start_date=20170702, 
+		@active_end_date=99991231, 
+		@active_start_time=13000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'4681dfdd-afae-44fd-b744-89d651ba0069'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
+/****** Object:  Job [DbaOptimTask3]    Script Date: 22/07/2017 07:30:59 ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'DbaOptimTask3', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'Database Maintenance', 
+		@owner_login_name=N'websearcherdb\samfavstromal', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [CrawleRequest REORGANIZE]    Script Date: 22/07/2017 07:30:59 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRequest REORGANIZE', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'ALTER INDEX ALL ON CrawleRequest REORGANIZE', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0400 FROM 0230 TO 2230', 
+		@enabled=1, 
+		@freq_type=4, 
+		@freq_interval=1, 
+		@freq_subday_type=8, 
+		@freq_subday_interval=4, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=0, 
+		@active_start_date=20170705, 
+		@active_end_date=99991231, 
+		@active_start_time=23000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'0e8ff919-e840-4fe0-aeee-ebc4fde6f71a'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
+/****** Object:  Job [DbaOptimTask4]    Script Date: 22/07/2017 07:31:02 ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'DbaOptimTask4', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'Database Maintenance', 
+		@owner_login_name=N'websearcherdb\samfavstromal', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [sp_updatestats]    Script Date: 22/07/2017 07:31:02 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'sp_updatestats', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'EXEC sp_updatestats', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'0400 FROM 0330 TO 2330', 
+		@enabled=1, 
+		@freq_type=4, 
+		@freq_interval=1, 
+		@freq_subday_type=8, 
+		@freq_subday_interval=4, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=0, 
+		@active_start_date=20170705, 
+		@active_end_date=99991231, 
+		@active_start_time=33000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'70e513b6-316b-471a-b369-4b542ed684a6'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
 
 --------------------------------------------------------------------------------------------------------------
 /*** Tools ***/
@@ -518,3 +647,16 @@ SELECT * FROM PAges WHERE Url LIKE '...' ORDER BY Url ASC
 
 -- search new popular useless stopwords
 select TOP 1000 display_term, SUM(document_count) document_count from sys.dm_fts_index_keywords (DB_ID('websearcher-sql'), OBJECT_ID('Pages') ) GROUP BY display_term order by SUM(document_count) desc
+
+-- TO optim before  use : page double detect
+  DELETE FROM Pages WHERE Url IN (
+	  SELECT CASE WHEN LEN(a)<LEN(b) THEN b WHEN LEN(a)>LEN(b) THEN a  WHEN a>b THEN a ELSE b END urlToDelete
+	  FROM (
+		  SELECT MIN(Url) a, Max(Url) b
+		  FROM Pages
+		  WHERE HiddenService = (SELECT TOP 1 HiddenService FROM HiddenServices ORDER BY IndexedPages DESC)
+		  GROUP BY HiddenService, InnerText
+		  HAVING COUNT(1)>1
+	  ) s
+  )
+

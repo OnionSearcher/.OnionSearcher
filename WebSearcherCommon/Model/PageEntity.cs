@@ -44,6 +44,13 @@ namespace WebSearcherCommon
                 , " ").Trim();
         }
 
+        public static bool IsTorUri(Uri uri)
+        {
+            return uri != null
+                    && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                    && uri.DnsSafeHost.EndsWith(".onion") && uri.DnsSafeHost.Length == 22;
+        }
+
         public static string GetHiddenService(string url)
         {
             int i = url.IndexOf('/', 29);
@@ -72,6 +79,8 @@ namespace WebSearcherCommon
         public string InnerText { get; set; }
         public string Heading { get; set; }
 
+        public HashSet<string> InnerLinks { get; set; }
+        public HashSet<string> OuterLinks { get; set; }
         public HashSet<string> OuterHdLinks { get; set; }
 
         /// <summary>

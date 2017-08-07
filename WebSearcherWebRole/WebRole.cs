@@ -19,8 +19,7 @@ namespace WebSearcherWebRole
                 {
                     await rot.WaitStartAsync(cancellationToken);
                     // main loop
-                    DateTime end = DateTime.Now.Add(Settings.Default.TimeBeforeRecycle);
-                    while (!cancellationToken.IsCancellationRequested && (DateTime.Now < end) && rot.IsProcessOk())
+                    while (!cancellationToken.IsCancellationRequested && rot.IsProcessOk())
                     {
                         await Task.Delay(30000, cancellationToken);
                     }
@@ -39,9 +38,9 @@ namespace WebSearcherWebRole
 
         public override void OnStop()
         {
-            RotManager.TryKillTorIfRequired();
-
             base.OnStop();
+
+            RotManager.TryKillTorIfRequired();
         }
 
     }

@@ -25,16 +25,7 @@ namespace WebSearcherWorkerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("04:00:00")]
-        public global::System.TimeSpan TimeBeforeRecycle {
-            get {
-                return ((global::System.TimeSpan)(this["TimeBeforeRecycle"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("80")]
+        [global::System.Configuration.DefaultSettingValueAttribute("50")]
         public int MaxCallPerTask {
             get {
                 return ((int)(this["MaxCallPerTask"]));
@@ -43,7 +34,7 @@ namespace WebSearcherWorkerRole {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("42")]
+        [global::System.Configuration.DefaultSettingValueAttribute("40")]
         public int NbCrawlersPerInstance {
             get {
                 return ((int)(this["NbCrawlersPerInstance"]));

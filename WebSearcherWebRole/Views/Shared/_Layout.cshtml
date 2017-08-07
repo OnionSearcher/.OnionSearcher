@@ -188,6 +188,15 @@ else
         </div>
     </div>
 }
+else if (!string.IsNullOrEmpty(ViewBag.AlertWarning))
+{
+    <div class="container">
+        <div class="alert alert-warning alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <strong>@ViewBag.AlertWarning</strong>
+        </div>
+    </div>
+}
 else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
 {
    <div class="container"> 
@@ -211,6 +220,7 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     </div>
                 </div>
             </div>
+            <div class="text-muted container text-center"><br/>NEW : Added support of cache: intitle: intext: site: ; See About section for more information.</div>
         </div>
     </form>
 
@@ -270,24 +280,31 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     <p class="container">
                         <h4>It's an serch engine for Tor Hidden Services.</h4>
                         <h5><i>Is there something else than dark markets and porns on Tor ? Let's seek !</i></h5>
-
-                        <h4>Anonymous</h4>
-                        <ul>
-                            <li>No user trackers (<i>cookie or worse</i>)</li>
-                        </ul>
                         <h4>Open-Source</h4>
                         <ul>
                             <li><a href="https://github.com/OnionSearcher/.OnionSearcher">Sources available on Git</a> (<i>Contributor wanted !</i>)</li>
                             <li>GNU license</li>
                             <li>Ads free</li>
                         </ul>
-                        <h4>Designed for Tor'Browsers</h4>
+                        <h4>Designed for Tor</h4>
                         <ul>
+                            <li>Anonymous</li>
+                            <li>No user trackers (<i>cookie or worse</i>)</li>
                             <li>No-script friendly</li>
+                        </ul>
+                        <h4>Usage</h4>
+                        <ul>
+                            <li>Common words will be removed of the search query with a warning allowing you to be more specific</li>
+                            <li>Advanded query operators : 
+                                <a href="/?q=cache:onicoyceokzquk4i.onion" title="Display indexed content of an hidden service url">cache:[http://]<em>51t3.onion</em>[/...]</a>
+                                <a href="/?q=site:onicoyceokzquk4i.onion" title="Display indexed pages of an hidden service">site:[http://]<em>51t3.onion</em>[/...]</a>
+                                <a href="/?q=intitle:Tor Hidden Services Searcher" title="Display indexed pages of an hidden service">[all]intitle:<em>keyword [keywords]</em></a>
+                                <a href="/?q=intext:Tor Hidden Services Searcher" title="Display indexed pages of an hidden service">[all]intext:<em>keyword [keywords]</em></a>
+                            </li>
                         </ul>
                         <h4>Policy</h4>
                         <ul>
-                            <li>No pedo please. Thanks to report indexed links for deindexing with contact form.</li>
+                            <li>No pedo please. Thanks to report indexed links for deindexing with contact form</li>
                         </ul>
                     </p>
                 </div>

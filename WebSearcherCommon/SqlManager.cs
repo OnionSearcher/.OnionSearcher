@@ -42,30 +42,14 @@ namespace WebSearcherCommon
 
         #region WebSearcherWebRole
 
-        public SearchResultEntity GetSearchResult(string keywords, short page, bool isFull)
+        private static SearchResultEntity FormatResult(DataSet ds)
         {
-            CheckOpen();
-
             SearchResultEntity ret = new SearchResultEntity()
             {
+                ResultsTotalNb = (int)ds.Tables[0].Rows[0][0],
                 Results = new List<PageResultEntity>()
             };
-            using (DataSet ds = new DataSet())
-            {
-                using (SqlCommand cmd = new SqlCommand("Search2", conn))
-                {
-                    cmd.Parameters.Add("@Keywords", SqlDbType.NVarChar, 64).Value = keywords;
-                    cmd.Parameters.Add("@Page", SqlDbType.SmallInt).Value = page - 1; // 0 based
-                    cmd.Parameters.Add("@Full", SqlDbType.SmallInt).Value = isFull; // 0 based
-                    cmd.CommandType = CommandType.StoredProcedure;
-
-                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-                    {
-                        da.Fill(ds);
-                    }
-                }
-
-                ret.ResultsTotalNb = (int)ds.Tables[0].Rows[0][0];
+            if(ret.ResultsTotalNb>0)
                 foreach (DataRow dr in ds.Tables[1].Rows)
                 {
                     PageResultEntity pe = new PageResultEntity()
@@ -86,7 +70,7 @@ namespace WebSearcherCommon
                     }
                     if (pe.HiddenServiceMain != null) // We keep it only on root HD in DB, not needed for display
                     {
-                        pe.HiddenServiceMain = pe.HiddenServiceMain.Substring(0, pe.Url.Length - 1);
+                        pe.HiddenServiceMain = pe.HiddenServiceMain.Substring(0, pe.HiddenServiceMain.Length - 1);
                         pe.HiddenServiceMainClick = "/?url=" + WebUtility.UrlEncode(pe.HiddenServiceMain);
                     }
                     if (pe.Url.EndsWith("/")) // We keep it only on root HD in DB, not needed for display
@@ -96,13 +80,113 @@ namespace WebSearcherCommon
                     else if (pe.Url.Length > 115) // 120 may cause linebreak with tag
                     {
                         pe.UrlToolTip = pe.Url;
-                        pe.Url = pe.Url.Substring(0, 117).Replace("\"", "&quot;") + "...";
+                        pe.Url = pe.Url.Substring(0, 112).Replace("\"", "&quot;") + "...";
                     }
                     ret.Results.Add(pe);
 
                 }
-            }
             return ret;
+        }
+        
+        public SearchResultEntity GetSearchResult(string keywords, short page, bool isFull)
+        {
+            CheckOpen();
+            using (DataSet ds = new DataSet())
+            {
+                using (SqlCommand cmd = new SqlCommand("Search2", conn))
+                {
+                    cmd.Parameters.Add("@Keywords", SqlDbType.NVarChar, 64).Value = keywords;
+                    cmd.Parameters.Add("@Page", SqlDbType.SmallInt).Value = page - 1; // 0 based
+                    cmd.Parameters.Add("@Full", SqlDbType.SmallInt).Value = isFull; // 0 based
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(ds);
+                    }
+                }
+                return FormatResult(ds);
+            }
+        }
+
+        public SearchResultEntity GetSearchTitleResult(string keywords, short page, bool isFull)
+        {
+            CheckOpen();
+            using (DataSet ds = new DataSet())
+            {
+                using (SqlCommand cmd = new SqlCommand("SearchTitle", conn))
+                {
+                    cmd.Parameters.Add("@Keywords", SqlDbType.NVarChar, 64).Value = keywords;
+                    cmd.Parameters.Add("@Page", SqlDbType.SmallInt).Value = page - 1; // 0 based
+                    cmd.Parameters.Add("@Full", SqlDbType.SmallInt).Value = isFull; // 0 based
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(ds);
+                    }
+                }
+                return FormatResult(ds);
+            }
+        }
+        public SearchResultEntity GetSearchInnerTextResult(string keywords, short page, bool isFull)
+        {
+            CheckOpen();
+            using (DataSet ds = new DataSet())
+            {
+                using (SqlCommand cmd = new SqlCommand("SearchInnerText", conn))
+                {
+                    cmd.Parameters.Add("@Keywords", SqlDbType.NVarChar, 64).Value = keywords;
+                    cmd.Parameters.Add("@Page", SqlDbType.SmallInt).Value = page - 1; // 0 based
+                    cmd.Parameters.Add("@Full", SqlDbType.SmallInt).Value = isFull; // 0 based
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(ds);
+                    }
+                }
+                return FormatResult(ds);
+            }
+        }
+        
+        public SearchResultEntity GetSearchSiteResult(string url, short page)
+        {
+            CheckOpen();
+            using (DataSet ds = new DataSet())
+            {
+                using (SqlCommand cmd = new SqlCommand("SearchSite", conn))
+                {
+                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, MaxSqlIndex).Value = url;
+                    cmd.Parameters.Add("@Page", SqlDbType.SmallInt).Value = page - 1; // 0 based
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(ds);
+                    }
+                }
+                return FormatResult(ds);
+            }
+        }
+        
+        public SearchResultEntity GetSearchCachedResult(string url)
+        {
+            CheckOpen();
+            using (DataSet ds = new DataSet())
+            {
+                using (SqlCommand cmd = new SqlCommand("SearchCached", conn))
+                {
+                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, MaxSqlIndex).Value = url;
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(ds);
+                    }
+                }
+                return FormatResult(ds);
+            }
         }
 
         public void PostContactMessage(string message)
@@ -143,7 +227,7 @@ namespace WebSearcherCommon
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@url", SqlDbType.NVarChar, 450).Value = url;
-                cmd.Parameters.Add("@prio", SqlDbType.SmallInt).Value = 1;
+                cmd.Parameters.Add("@prio", SqlDbType.TinyInt).Value = 1;
 
                 cmd.ExecuteNonQuery();
             }
@@ -152,38 +236,8 @@ namespace WebSearcherCommon
         #endregion WebSearcherWebRole
 
         #region WebSearcherWorkerRole
-        /*
-        public async Task<bool> CheckIfCanCrawlePageAsync(string url, string hiddenService, CancellationToken cancellationToken)
-        {
-            if (url == null) throw new ArgumentNullException("url");
-            if (url.Length > MaxSqlIndex) url = url.Substring(0, MaxSqlIndex);
-
-            await CheckOpenAsync(cancellationToken);
-
-            if (!cancellationToken.IsCancellationRequested)
-                using (SqlCommand cmd = new SqlCommand("CanCrawle", conn))
-                {
-                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = url;
-                    cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar, 37).Value = hiddenService;
-                    cmd.CommandType = CommandType.StoredProcedure;
-
-                    SqlParameter outputRet = new SqlParameter("@ret", SqlDbType.SmallInt)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    cmd.Parameters.Add(outputRet);
-
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-
-                    short? ret = outputRet.Value as short?;
-                    return ret.HasValue ? (ret.Value == 1) : false;
-                }
-            else
-                return false;
-        }
-        */
-
-        public async Task CrawleRequestEnqueueAsync(string url, short prio, CancellationToken cancellationToken)
+        
+        public async Task CrawleRequestEnqueueAsync(string url, CancellationToken cancellationToken)
         {
             await CheckOpenAsync(cancellationToken);
 
@@ -192,7 +246,7 @@ namespace WebSearcherCommon
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@url", SqlDbType.NVarChar, 450).Value = url;
-                    cmd.Parameters.Add("@prio", SqlDbType.SmallInt).Value = prio;
+                    cmd.Parameters.Add("@prio", SqlDbType.TinyInt).Value = 6;
 
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
@@ -206,15 +260,8 @@ namespace WebSearcherCommon
                 using (SqlCommand cmd = new SqlCommand("CrawleRequestDequeue", conn))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
-                    SqlParameter outputRet = new SqlParameter("@Url", SqlDbType.NVarChar, 450)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    cmd.Parameters.Add(outputRet);
 
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-
-                    return outputRet.Value as string;
+                    return await cmd.ExecuteScalarAsync(cancellationToken) as string;
                 }
             else
                 return null;
@@ -258,6 +305,18 @@ WHEN NOT MATCHED THEN INSERT (HiddenService,Url,Title,FirstCrawle,LastCrawle,Hea
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
+
+            if (page.InnerText.Length > MaxSqlText) page.InnerText = page.InnerText.Substring(0, MaxSqlText);
+            if (!cancellationToken.IsCancellationRequested)
+                using (SqlCommand cmd = new SqlCommand("UPDATE Pages SET InnerText=@InnerText WHERE Url=@Url", conn))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.CommandTimeout = 0;
+                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = page.Url;
+                    cmd.Parameters.Add("@InnerText", SqlDbType.NVarChar).Value = page.InnerText;
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+
             if (page.OuterHdLinks.Count > 0 && !cancellationToken.IsCancellationRequested)
             {
                 string sqlSelect = "SELECT @f,'" + string.Join("' UNION SELECT @f,'", page.OuterHdLinks) + "'"; // check SQL Injection before !
@@ -271,34 +330,59 @@ WHEN NOT MATCHED THEN INSERT (HiddenService,HiddenServiceTarget) VALUES (source.
                 }
             }
 
-            if (page.InnerText.Length > MaxSqlText) page.InnerText = page.InnerText.Substring(0, MaxSqlText);
-            if (!cancellationToken.IsCancellationRequested)
-                using (SqlCommand cmd = new SqlCommand("UPDATE Pages SET InnerText=@InnerText WHERE Url=@Url", conn))
+            if (page.OuterHdLinks.Count > 0 && !cancellationToken.IsCancellationRequested)
+            {
+                using (SqlCommand cmd = new SqlCommand("CrawleRequestMassEnqueue", conn))
                 {
-                    cmd.CommandType = CommandType.Text;
+                    cmd.CommandType = CommandType.StoredProcedure;
                     cmd.CommandTimeout = 0;
-                    cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = page.Url;
-                    cmd.Parameters.Add("@InnerText", SqlDbType.NVarChar).Value = page.InnerText;
+                    cmd.Parameters.Add("@Urls", SqlDbType.NVarChar).Value = string.Join("\r", page.OuterHdLinks);
+                    cmd.Parameters.Add("@prio", SqlDbType.TinyInt).Value = 2;
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
+            }
+
+            if (page.OuterLinks.Count > 0 && !cancellationToken.IsCancellationRequested)
+            {
+                using (SqlCommand cmd = new SqlCommand("CrawleRequestMassEnqueue", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 0;
+                    cmd.Parameters.Add("@Urls", SqlDbType.NVarChar).Value = string.Join("\r", page.OuterLinks);
+                    cmd.Parameters.Add("@prio", SqlDbType.TinyInt).Value = 3;
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+
+            if (page.InnerLinks.Count > 0 && !cancellationToken.IsCancellationRequested)
+            {
+                using (SqlCommand cmd = new SqlCommand("CrawleRequestMassEnqueue", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 0;
+                    cmd.Parameters.Add("@Urls", SqlDbType.NVarChar).Value = string.Join("\r", page.InnerLinks);
+                    cmd.Parameters.Add("@prio", SqlDbType.TinyInt).Value = (page.HiddenService == page.Url ? 4 : 5);
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+
         }
 
-        public async Task PageInsertOrUpdateKo(PageEntity page, CancellationToken cancellationToken)
+        public async Task PageUpdateKo(PageEntity page, CancellationToken cancellationToken)
         {
             await CheckOpenAsync(cancellationToken);
             if (page == null) throw new ArgumentNullException("page");
             if (page.Url.Length > MaxSqlIndex) page.Url = page.Url.Substring(0, MaxSqlIndex);
 
             if (!cancellationToken.IsCancellationRequested)
-                using (SqlCommand cmd = new SqlCommand(@"MERGE Pages AS target USING (SELECT @url,@LastCrawle,@HiddenService) AS source (Url,LastCrawle,HiddenService) ON (target.Url = source.Url)
-WHEN MATCHED THEN UPDATE SET CrawleError=COALESCE(CrawleError,0)+1,LastCrawle=source.LastCrawle,Rank=CASE WHEN Rank IS NOT NULL THEN Rank/2.0 ELSE 0.0 END,RankDate=SYSUTCDATETIME()
-WHEN NOT MATCHED THEN INSERT (Url,LastCrawle,FirstCrawle,HiddenService,CrawleError,Rank,RankDate) VALUES (source.Url,source.LastCrawle,source.LastCrawle,source.HiddenService,1,0.0,SYSUTCDATETIME());", conn)) // rank at 0 a new or half it if previously OK
+                using (SqlCommand cmd = new SqlCommand(@"UPDATE Pages SET CrawleError=COALESCE(CrawleError,0)+1,LastCrawle=@LastCrawle,Rank=CASE WHEN Rank IS NOT NULL THEN Rank/2.0 ELSE 0.0 END,RankDate=SYSUTCDATETIME() WHERE Url=@Url", conn))
                 {
                     cmd.CommandType = CommandType.Text;
                     cmd.CommandTimeout = 0;
                     cmd.Parameters.Add("@HiddenService", SqlDbType.NVarChar, 37).Value = page.HiddenService;
                     cmd.Parameters.Add("@Url", SqlDbType.NVarChar, 450).Value = page.Url;
                     cmd.Parameters.Add("@LastCrawle", SqlDbType.DateTime2).Value = page.LastCrawle;
+
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
         }

@@ -17,20 +17,7 @@ namespace WebSearcherWorkerRole
     {
 
         private static char[] forbiddenInHd = { '&', '\\', '\'', '\"', '\0', '\b', '\n', '\r', '\t', (char)26, '%', '_' };
-
-        private static object concurrentHashSetLock = new object();
-        /// <summary>
-        /// Avoid to push several time the same URL to the queue during the lifetime of the worker ~1 h (see settings)
-        /// </summary>
-        private static HashSet<string> concurrentHashSet = new HashSet<string>();
-        internal static void SafeAddConcurrentHashSet(string url)
-        {
-            lock (concurrentHashSetLock)
-            {
-                if (!concurrentHashSet.Contains(url))
-                    concurrentHashSet.Add(url);
-            }
-        }
+        
 
         internal static async Task<bool> CrawleOneAsync(ProxyManager proxy, string url, CancellationToken cancellationToken)
         {
@@ -48,43 +35,53 @@ namespace WebSearcherWorkerRole
                     }
                     catch (WebException ex)
                     {
-                        bool isRetry = true;
-                        if (ex.Status != WebExceptionStatus.RequestCanceled)
+                        if (!cancellationToken.IsCancellationRequested)
                         {
-                            if (ex.Response is HttpWebResponse err)
+                            bool isRetry = true;
+                            if (ex.Status != WebExceptionStatus.RequestCanceled)
                             {
-                                if (err.StatusCode != HttpStatusCode.NotFound)
-                                    page.InnerText = err.StatusDescription; // won't be saved by PageInsertOrUpdateKo anaway...
-                                else if (url != page.HiddenService) // 404 cleanup execpt domain root (who replied obviously)
-                                    isRetry = false;
+                                if (ex.Response is HttpWebResponse err)
+                                {
+                                    if (err.StatusCode != HttpStatusCode.NotFound)
+                                        page.InnerText = err.StatusDescription; // won't be saved by PageInsertOrUpdateKo anaway...
+                                    else if (url != page.HiddenService) // 404 cleanup execpt domain root (who replied obviously)
+                                        isRetry = false;
+                                }
+                                else
+                                    Trace.TraceInformation("CrawleManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : WebException " + ex.GetBaseException().Message);
+                            }
+                            else // raise by ProxyManager_DownloadProgressChanged
+                            {
+                                Trace.TraceInformation("CrawleManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Cancelled");
+                                isRetry = false;
+                            }
+                            if (isRetry)
+                            {
+                                await sql.PageUpdateKo(page, cancellationToken);
+                                return false;
                             }
                             else
-                                Trace.TraceInformation("CrawleManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : WebException " + ex.GetBaseException().Message);
-                        }
-                        else // raise by ProxyManager_DownloadProgressChanged
-                        {
-                            Trace.TraceInformation("CrawleManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : Cancelled");
-                            isRetry = false;
-                        }
-                        if (isRetry)
-                        {
-                            await sql.PageInsertOrUpdateKo(page, cancellationToken);
-                            return false;
+                            {
+                                await sql.UrlPurge(url, cancellationToken);
+                                return true; // looks like an OK for the manager : he won't retry
+                            }
                         }
                         else
                         {
-                            await sql.UrlPurge(url, cancellationToken);
-                            return true; // looks like an OK for the manager : he won't retry
+                            return false;
                         }
                     }
                     catch (OperationCanceledException) { return false; } // retry
                     catch (Exception ex)
                     {
                         Trace.TraceInformation("CrawleManager.CrawleOneAsync DownloadStringTaskAsync " + url + " : WebException " + ex.GetBaseException().ToString());
-                        await sql.PageInsertOrUpdateKo(page, cancellationToken);
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
 #if DEBUG
-                        Debugger.Break();
+                            Debugger.Break();
 #endif
+                            await sql.PageUpdateKo(page, cancellationToken);
+                        }
                         return false;
                     }
 
@@ -144,8 +141,9 @@ namespace WebSearcherWorkerRole
                     heading = null;
 
                     // <A href digest
-                    HashSet<string> innerLinks = new HashSet<string>();
-                    HashSet<string> outerLinks = new HashSet<string>();
+                    page.OuterLinks = new HashSet<string>();
+                    page.OuterHdLinks = new HashSet<string>();
+                    page.InnerLinks = new HashSet<string>();
                     foreach (HtmlNode htmlNode in htmlDoc.DocumentNode.Descendants("a"))
                     {
                         if (htmlNode.Attributes.Contains("href") && !cancellationToken.IsCancellationRequested)
@@ -155,74 +153,56 @@ namespace WebSearcherWorkerRole
                             Uri uriResult = null;
                             if (href.StartsWith("http"))
                             {
-                                if (Uri.TryCreate(href, UriKind.Absolute, out uriResult) && RotManager.IsTorUri(uriResult)) // >=29 because some funny link with just: href='http://'
+                                if (Uri.TryCreate(href, UriKind.Absolute, out uriResult) && PageEntity.IsTorUri(uriResult)) // >=29 because some funny link with just: href='http://'
                                 {
                                     string str = uriResult.ToString();
                                     str = PageEntity.NormalizeUrl(str);
-                                    if (str.Length < SqlManager.MaxSqlIndex && uriResult.DnsSafeHost != uriOrig.DnsSafeHost)
-                                        if (!outerLinks.Contains(str) && !concurrentHashSet.Contains(str))
+                                    if (str.Length < SqlManager.MaxSqlIndex)
+                                        if (uriResult.DnsSafeHost != uriOrig.DnsSafeHost)
                                         {
-                                            outerLinks.Add(str);
-                                            SafeAddConcurrentHashSet(str);
+                                            if (!page.OuterLinks.Contains(str) && !page.OuterHdLinks.Contains(str))
+                                            {
+                                                string hd = PageEntity.GetHiddenService(str);    // Digest outter HD
+                                                if (hd.Length <= 37 && hd.IndexOfAny(forbiddenInHd) == -1) // some strange url may cause injection
+                                                {
+                                                    if(hd == str)
+                                                        page.OuterHdLinks.Add(hd);
+                                                    else
+                                                        page.OuterLinks.Add(str);
+                                                }
+                                                else
+                                                {
+                                                    Trace.TraceWarning("CrawleManager.CrawleOneAsync Strange HD outer link from " + url + " : " + hd);
+#if DEBUG
+                                                    if (Debugger.IsAttached) { Debugger.Break(); }
+#endif
+                                                }
+                                            }
                                         }
-                                        else if (!innerLinks.Contains(str) && !concurrentHashSet.Contains(str))
-                                        {
-                                            innerLinks.Add(str);
-                                            SafeAddConcurrentHashSet(str);
-                                        }
+                                        else if (!page.InnerLinks.Contains(str))
+                                            page.InnerLinks.Add(str);
                                 }
                             }
                             else if (!href.StartsWith("#"))
                             {
-                                if (Uri.TryCreate(uriOrig, href, out uriResult) && RotManager.IsTorUri(uriResult))
+                                if (Uri.TryCreate(uriOrig, href, out uriResult) && PageEntity.IsTorUri(uriResult))
                                 {
                                     string str = uriResult.ToString();
                                     str = PageEntity.NormalizeUrl(str);
 
-                                    if (str.Length < SqlManager.MaxSqlIndex && !innerLinks.Contains(str) && !concurrentHashSet.Contains(str))
+                                    if (str.Length < SqlManager.MaxSqlIndex && !page.InnerLinks.Contains(str))
                                     {
-                                        innerLinks.Add(str);
-                                        SafeAddConcurrentHashSet(str);
+                                        page.InnerLinks.Add(str);
                                     }
                                 }
                             }
                         }
                     }
                     htmlDoc = null;
-
-                    // finish page object before save
-                    if (innerLinks.Contains(page.Url))
-                        innerLinks.Remove(page.Url);
-                    if (innerLinks.Contains(page.HiddenService))
-                        innerLinks.Remove(page.HiddenService);
-
-                    page.OuterHdLinks = new HashSet<string>();
-                    // Ask to follow
-                    foreach (string str in outerLinks)
-                    {
-                        string hd = PageEntity.GetHiddenService(str);
-                        await sql.CrawleRequestEnqueueAsync(str, (short)(hd == str ? 2 : 3), cancellationToken); // TOFIX : optim : pass all data in a string and unformat it on sql server
-                        if (!page.OuterHdLinks.Contains(hd))
-                        {    // basic check for sql injection
-                            if (hd.Length <= 37 && hd.IndexOfAny(forbiddenInHd) == -1)
-                                page.OuterHdLinks.Add(hd);
-                            else
-                            {
-                                Trace.TraceWarning("CrawleManager.CrawleOneAsync Strange HD outer link from " + url + " : " + hd);
-#if DEBUG
-                                if (Debugger.IsAttached) { Debugger.Break(); }
-#endif
-                            }
-                        }
-                    }
-                    outerLinks = null;
-                    bool isLinkFromRoot = (page.HiddenService == page.Url);
-                    foreach (string str in innerLinks)
-                    {
-                        await sql.CrawleRequestEnqueueAsync(str, (short)(isLinkFromRoot ? 4 : 5), cancellationToken);
-                    }
-                    innerLinks = null;
-
+                    if (page.InnerLinks.Contains(page.Url)) page.InnerLinks.Remove(page.Url);
+                    if (page.InnerLinks.Contains(page.HiddenService)) page.InnerLinks.Remove(page.HiddenService);
+                    
+                    // Page Update
                     //try
                     //{
                     await sql.PageInsertOrUpdateOk(page, cancellationToken);

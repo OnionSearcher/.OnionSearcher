@@ -10,8 +10,10 @@
       <!-- doesn t seems usefull and raise a lot of error in infra <Import moduleName="Diagnostics" />-->
     </Imports>
     <Startup>
-      <!-- Counter creating by c# don t have enouth right even with Runtime executionContext=elevated -->
+      <!-- c# don t have enouth right even with Runtime executionContext=elevated -->
+      <Task commandLine="KillRot.cmd" executionContext="elevated" />
       <Task commandLine="PerfCounter.cmd" executionContext="elevated" />
+      <Task commandLine="FullRestart.cmd" executionContext="elevated" />
     </Startup>
   </WorkerRole>
 </ServiceDefinition>

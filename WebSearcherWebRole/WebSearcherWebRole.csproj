@@ -89,19 +89,18 @@
     <None Include="Configure_HTTP.SYS.cmd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Content Include="FullRestart.cmd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="package.json" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
     <None Include="gulpfile.js" />
-    <Content Include="error.htm" />
-    <Content Include="error400.htm" />
-    <Content Include="error500.htm" />
     <Content Include="favicon.ico" />
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Home\Add.cshtml" />
     <Content Include="Views\Home\Index.cshtml" />
-    <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Web.config" />
     <Content Include="robots.txt" />
     <Content Include="Views\Home\Contact.cshtml" />
@@ -112,6 +111,14 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
       <CustomToolNamespace>WebSearcherWebRole</CustomToolNamespace>
     </None>
+    <None Include="ExpertBundle\hostname">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ExpertBundle\private_key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <Content Include="Views\Shared\_Layout.cshtml" />
+    <Content Include="Views\Home\Error.cshtml" />
     <None Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
       <SubType>Designer</SubType>
@@ -128,6 +135,7 @@
       <Link>Properties\AssemblyInfoGlobal.cs</Link>
     </Compile>
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="Controllers\ActionNamesAttribute.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
