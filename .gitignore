@@ -289,10 +289,18 @@ __pycache__/
 
 #local
 *.wadcfgx
-/WebSearcherCommon/ExpertBundle/Data/g6
-/WebSearcherCommon/ExpertBundle/Data/g
 /WebSearcherCommon/ExpertBundle/Rot/*
 /WebSearcherWebRole/r.js
 /WebSearcherWebRole/r.css
 /WebSearcherWebRole/ExpertBundle/hostname
 /WebSearcherWebRole/ExpertBundle/private_key
+/WebSearcherCommon/ExpertBundle/Data/g6
+/WebSearcherCommon/ExpertBundle/Data/g
+/WebSearcherWebRole/ExpertBundle/Data/2/private_key
+/WebSearcherWebRole/ExpertBundle/Data/2/hostname
+/WebSearcherWebRole/ExpertBundle/Data/2
+/WebSearcherWebRole/ExpertBundle/Data/1/private_key
+/WebSearcherWebRole/ExpertBundle/Data/1/hostname
+/WebSearcherWebRole/ExpertBundle/Data/1
+/WebSearcherWebRole/ExpertBundle/Data/0/private_key
+/WebSearcherWebRole/ExpertBundle/Data/0/hostname

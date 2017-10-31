@@ -42,7 +42,7 @@ namespace WebSearcherCommon
                 Trace.TraceWarning("RotManager.killTorIfRequired Exception : " + ex.GetBaseException().Message);  // No right usualy, simple message to keep.
             }
         }
-        
+
         private bool hasStarted = false;
 
         private void OutputHandler(object sender, DataReceivedEventArgs e)
@@ -54,7 +54,6 @@ namespace WebSearcherCommon
                 if (e.Data.Contains("[err]"))
                 {
                     Trace.TraceError("RotManager : " + e.Data);
-                    // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("RotManager : " + e.Data);
 #if DEBUG
                     if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
@@ -64,7 +63,6 @@ namespace WebSearcherCommon
                     if (e.Data.Contains("Tor has successfully opened a circuit."))
                         hasStarted = true;
                     Trace.TraceInformation("RotManager : " + e.Data);
-                    // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("RotManager : " + e.Data);
                 }
             }
         }
@@ -74,22 +72,21 @@ namespace WebSearcherCommon
             if (!String.IsNullOrWhiteSpace(e.Data))
             {
                 Trace.TraceError("RotManager : " + e.Data);
-                // TOFIX Trace don't work on WebRole, use it if require : StorageManager.Contact("RotManager : " + e.Data);
 #if DEBUG
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
             }
         }
-        
+
         private Process process;
         private static readonly string basePath = AppDomain.CurrentDomain.BaseDirectory;
         public RotManager(int i)
         {
-#if !DEBUG      // else DEBUG will publish and take the production .onion !
-            if (File.Exists(Path.Combine(basePath, @"ExpertBundle\hostname"))) // copy keyfiles, need to be writen else the azure cloud service won't have the right for rewrite the file (don't kwow why Tor rewrite the same file...)
+#if DEBUG      // else DEBUG will publish and take the production .onion !
+            if (File.Exists(Path.Combine(basePath, @"ExpertBundle\data\" + i + @"\hostname"))) // copy keyfiles, need to be writen else the azure cloud service won't have the right for rewrite the file (don't kwow why Tor rewrite the same file...)
             {
-                File.Copy(Path.Combine(basePath, @"ExpertBundle\hostname"), Path.Combine(basePath, @"ExpertBundle\Data\hostname"));
-                File.Copy(Path.Combine(basePath, @"ExpertBundle\private_key"), Path.Combine(basePath, @"ExpertBundle\Data\private_key"));
+                File.Delete(Path.Combine(basePath, @"ExpertBundle\data\" + i + @"\hostname"));
+                File.Delete(Path.Combine(basePath, @"ExpertBundle\data\" + i + @"\private_key"));
             }
 #endif
 
@@ -114,7 +111,7 @@ namespace WebSearcherCommon
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
         }
-  
+
         public async Task WaitStartAsync(CancellationToken cancellationToken)
         {
             // WaitStartedAsync
@@ -126,7 +123,29 @@ namespace WebSearcherCommon
 
         public bool IsProcessOk()
         {
-            return process != null && !process.HasExited && process.Responding;
+            if (process != null)
+            {
+                if (!process.HasExited)
+                {
+                    if (process.Responding)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        Trace.TraceWarning("RotManager.IsProcessOk : process is not responding");
+                    }
+                }
+                else
+                {
+                    Trace.TraceWarning("RotManager.IsProcessOk : process has exited");
+                }
+            }
+            else
+            {
+                Trace.TraceWarning("RotManager.IsProcessOk : process is null");
+            }
+            return false;
         }
 
         #region IDisposable Support
@@ -152,22 +171,29 @@ namespace WebSearcherCommon
                             }
                             catch (Exception ex)
                             {
-                                Trace.TraceWarning("RotManager.Dispose Exception : " + ex.GetBaseException().ToString());
+                                Trace.TraceWarning("RotManager.Dispose process.Kill Exception : " + ex.GetBaseException().ToString());
                             }
                         }
-                        process.Dispose();
+                        try
+                        {
+                            process.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.TraceWarning("RotManager.Dispose process.Dispose Exception : " + ex.GetBaseException().ToString());
+                        }
                         process = null;
                     }
                 }
                 disposedValue = true;
             }
         }
-        
+
         public void Dispose()
         {
             Dispose(true);
         }
         #endregion
-        
+
     }
 }

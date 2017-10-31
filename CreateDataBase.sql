@@ -125,7 +125,7 @@ ALTER FULLTEXT STOPLIST SearchStoplist ADD 'utc' LANGUAGE 1033;ALTER FULLTEXT ST
 ALTER FULLTEXT STOPLIST SearchStoplist ADD 'version' LANGUAGE 1033;ALTER FULLTEXT STOPLIST SearchStoplist ADD 'version' LANGUAGE 'Neutral';
 ALTER FULLTEXT STOPLIST SearchStoplist ADD 'view' LANGUAGE 1033;ALTER FULLTEXT STOPLIST SearchStoplist ADD 'view' LANGUAGE 'Neutral';
 ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 1033;ALTER FULLTEXT STOPLIST SearchStoplist ADD 'web' LANGUAGE 'Neutral';
--- don t help fucking ped.... (list not commited for not helping giving keywords...)
+-- ban ped (list not commited for not helping giving keywords...)
 GO
 GRANT VIEW DEFINITION ON FULLTEXT STOPLIST :: SearchStoplist TO sqlReader; -- For retreive STOPWORDS
 GO
@@ -158,7 +158,7 @@ CREATE FULLTEXT INDEX ON Pages
 )   
 KEY INDEX PK_Pages ON SearchCatalog
 WITH STOPLIST = SearchStoplist, CHANGE_TRACKING AUTO  
-GO 
+GO
 
 CREATE TABLE BannedUrl
 (
@@ -167,6 +167,17 @@ CREATE TABLE BannedUrl
 	PagesPurge DATETIME2(2)
 )
 ALTER TABLE BannedUrl ADD CONSTRAINT PK_BannedUrl PRIMARY KEY CLUSTERED (UrlLike)
+GO
+
+CREATE TABLE BannedUrlQuery
+(
+	Query NVARCHAR(450) NOT NULL,
+	Reason NVARCHAR(64) NULL,
+	PagesPurge DATETIME2(2)
+)
+ALTER TABLE BannedUrlQuery ADD CONSTRAINT PK_BannedUrlQuery PRIMARY KEY CLUSTERED (UrlLike)
+GO
+GRANT SELECT ON BannedUrlQuery TO sqlWriter -- require for the MERGE
 GO
 
 CREATE TABLE HiddenServices
@@ -195,7 +206,7 @@ CREATE TABLE HiddenServiceLinks
 	HiddenServiceTarget NVARCHAR(37) NOT NULL
 )
 ALTER TABLE HiddenServiceLinks ADD CONSTRAINT PK_HiddenServiceLinks PRIMARY KEY CLUSTERED (HiddenService,HiddenServiceTarget)  -- NO FK : HD may be new and not exist
-CREATE NONCLUSTERED INDEX IX_HiddenServiceLinks ON HiddenServiceLinks (HiddenServiceTarget)
+-- NO PERF GAIN -- CREATE NONCLUSTERED INDEX IX_HiddenServiceLinks ON HiddenServiceLinks (HiddenServiceTarget)
 GO
 GRANT SELECT, INSERT, UPDATE ON HiddenServiceLinks TO sqlWriter -- require for the MERGE
 GO
@@ -221,4 +232,15 @@ ALTER TABLE CrawleRequest ADD CONSTRAINT PK_CrawleRequest PRIMARY KEY CLUSTERED 
 CREATE NONCLUSTERED INDEX IX_CrawleRequest ON CrawleRequest (Priority,ExpireDate)
 GO
 GRANT SELECT,INSERT,DELETE ON CrawleRequest TO sqlManager -- purge expired by jog SQL + rescan self hd
+GO
+
+
+CREATE TABLE DbRowStats (
+	[Date] [datetime2](2) NOT NULL,
+	[HiddenServices] [int] NOT NULL,
+	[HiddenServicesOK] [int] NOT NULL,
+	[Pages] [int] NOT NULL,
+	[PagesOK] [int] NOT NULL
+)
+ALTER TABLE DbRowStats ADD CONSTRAINT PK_DbRowStats PRIMARY KEY CLUSTERED ([Date])
 GO

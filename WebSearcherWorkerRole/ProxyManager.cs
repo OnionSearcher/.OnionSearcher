@@ -36,7 +36,7 @@ namespace WebSearcherWorkerRole
 #endif
             }
         }
-
+        
         public ProxyManager(int i) : base()
         {
             client = new HttpClient(new Proxy("127.0.0.1", RotManager.Rotrc0Port + i, ProxyTypeEnum.Socks))
@@ -45,15 +45,31 @@ namespace WebSearcherWorkerRole
                 Accept = "text/html",
                 NumberOfAttempts = 2,
                 CachePolicy = cachePolicy,
-                ValidateServerCertificateSocksProxy = false
+                ValidateServerCertificateSocksProxy = false,
+                AllowAutoRedirect = false
             };
             client.DownloadProgressChanged += ProxyManager_DownloadProgressChanged;
         }
 
-        internal async Task<string> DownloadStringTaskAsync(Uri uriOrig)
+
+        internal async Task<string> DownloadStringTaskAsync(string referer, string uriOrig)
         {
-            client.Referer = uriOrig.AbsoluteUri;
-            return await client.DownloadStringTaskAsync(uriOrig);
+            client.Referer = referer; // some site may change according to referer
+            string ret = await client.DownloadStringTaskAsync(uriOrig);
+            if (client.ResponseHeaders["Content-Type"] != null)
+            {
+                if (client.ResponseHeaders["Content-Type"].StartsWith("text/html", StringComparison.OrdinalIgnoreCase))
+                    return ret;
+                else
+                    throw new WebException(uriOrig, WebExceptionStatus.RequestCanceled);
+            }
+            else // benefit of the doubt
+            {
+#if DEBUG
+                if (Debugger.IsAttached) Debugger.Break();
+#endif
+                return ret;
+            }
         }
 
         #region IDisposable Support

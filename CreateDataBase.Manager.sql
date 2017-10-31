@@ -57,8 +57,7 @@ BEGIN
 
 			-- HDlink purge fully for old data reprocess, page purge will be done with the pagepurgetask
 			DELETE l FROM HiddenServiceLinks l
-				WHERE l.HiddenService IN (SELECT HiddenService FROM HiddenServiceMirrors) -- optim
-				AND NOT EXISTS (SELECT 1 FROM HiddenServiceMirrors r WHERE  r.HiddenService=l.HiddenService AND r.HiddenServiceMain=l.HiddenServiceTarget) -- keep only the link to the main
+				WHERE l.HiddenService IN (SELECT HiddenService FROM #MirrorsDetected)
 
 		SET @ret=0
 		SELECT TOP 1 @ret=1

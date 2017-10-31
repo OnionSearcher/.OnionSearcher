@@ -7,7 +7,7 @@
             @(ViewBag.ResultsTotalNb > 1 ? "About "+String.Format("{0:n0}", ViewBag.ResultsTotalNb)+" results." : "One lonely result...")
             Current results @(ViewBag.IsFull == null || ViewBag.IsFull ? "aren't" :"are") filtered.
             @if (ViewBag.IsFull != null) {
-            <a href="/?@(ViewBag.IsFull ? "" : "f=1&")q=@(ViewBag.ResearchUrlEncoded)">click here to change this.@ViewBag.IsFull</a>
+            <a href="/?@(ViewBag.IsFull ? "" : "f=1&")q=@(ViewBag.ResearchUrlEncoded)">click here to change this.</a>
             }
             </p>
 
@@ -43,8 +43,8 @@
                 <div class="row">
                     <nav aria-label="Page navigation" class="col-sm-offset-1 col-sm-6">
                         <ul class="pagination">
-                            <li @(ViewBag.Previous?"":"class=disabled")><a href="@(ViewBag.Previous ? "/?"+(ViewBag.IsFull?"f=1&":"")+"p=" + (ViewBag.Page - 1)+"&q=" + ViewBag.ResearchUrlEncoded :"#")" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
-                            <li @(ViewBag.PageA!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")p=@(ViewBag.PageA)&q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageA)</a></li>
+                            <li @(ViewBag.Previous?"":"class=disabled")><a href="@(ViewBag.Previous ? "/?"+(ViewBag.IsFull?"f=1&":"")+(ViewBag.Page==2?"":"p="+(ViewBag.Page-1)+"&")+"q=" + ViewBag.ResearchUrlEncoded :"#")" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
+                            <li @(ViewBag.PageA!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")@(ViewBag.PageA==1?"":"p="+ViewBag.PageA+"&")q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageA)</a></li>
                             <li @(ViewBag.PageB!= ViewBag.Page ? "": "class=active")><a href="/?@(ViewBag.IsFull ? "f=1&": "")p=@(ViewBag.PageB)&q=@(ViewBag.ResearchUrlEncoded)">@(ViewBag.PageB)</a></li>
                             @if (ViewBag.ResultsTotalNb > 20)
                             {

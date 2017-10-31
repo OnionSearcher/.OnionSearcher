@@ -2,32 +2,24 @@
 (dot)Onion Searcher
 
 An open source, anonymous, no-script friendly, ads free, search engine dedicated to the Tor network.
-Advanced search function : cache: site: intitle: intext:
+Advanced search function : cache: site: intitle: intext: inurl:
 
 ## TOFIX
 
 - A lot !
 - Search results quality
 - Ranking quality
-- UTF16 pages don't display correctly
-- Trace don't work for WebRole class (but the reel web trace are OK, juste the Azure service himself
-- Fix CounterRoleStarted.Increment
-- Anonymous Tor process
-- Crawlers stability
-- WebException  Bad Request
+- UTF16 pages doesn't always display correctly
 - restart new url scan on old hd and page to fix (no gode right and need a proc)
-- ban redirection on normal web
 - ssl error "A call to SSPI failed" / "The function requested is not supported"
-- Manage redirect like a new Url
-- WebException  Bad Gateway
+- Url rencoding when removing some query forece urlencode that may break the page like this force encoding of some param not required like ; and web server may not interpret them correctly, like http://37327zww2mdb76ie.onion/?p=.git;a=history;f=test;h=e69de29bb2d1d6434b8b29ae775ad8c2e48c5391;hb=HEAD
 
 ## TODO
 
 - Url cleaner (sid remover for exemple)
 - Improve full text search
 - Better english
-- Abuse/Report system for user
-- Support site: and links: inurl: link:  allinurl:  inurl:
+- Abuse/Report system direct from result
 - Filter HTTP200 page with HTTP Error text only
 
 ## Contributing

@@ -36,9 +36,9 @@ namespace WebSearcherWebRole
         protected void Application_Start()
         {
 #if DEBUG
-            Trace.TraceInformation("WebSearcherApplication.Application_Start v" + GetVersion() + " on " + Environment.OSVersion.ToString());
+            Trace.TraceWarning("WebSearcherApplication.Application_Start v" + GetVersion() + " on " + Environment.OSVersion.ToString());
 #else
-            Trace.TraceInformation("WebSearcherApplication.Application_Start v" + GetVersion() + " on " + Environment.OSVersion.ToString());
+            Trace.TraceWarning("WebSearcherApplication.Application_Start v" + GetVersion() + " on " + Environment.OSVersion.ToString());
 #endif
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
@@ -48,13 +48,60 @@ namespace WebSearcherWebRole
             MvcHandler.DisableMvcResponseHeader = true;
         }
 
+        private static bool altUrl = false;
+        protected void Application_BeginRequest(object sender, EventArgs e)
+        {
+            // fast 404 management
+            string path = Request.Url.AbsolutePath.ToLowerInvariant();
+            switch (path)
+            {
+                case "/":
+                case "/about":
+                case "/about/":
+                case "/add":
+                case "/add/":
+                case "/contact":
+                case "/contact/":
+                case "/error":
+                case "/favicon.ico":
+                case "/r.js":
+                case "/r.css":
+
+                    // normal query on old domain ? (avaid redirecting 404 to new Uri)
+                    if (Request.Url.Host.Equals("onicoyceokzquk4i.onion", StringComparison.OrdinalIgnoreCase))
+                    {
+                        altUrl = !altUrl;
+                        Response.RedirectPermanent(
+                            (altUrl ? "http://onionsearcg5v5tq.onion" : "http://onionsearh6bygec.onion") + Request.Url.PathAndQuery
+                            , true);
+                    }
+
+                    break;
+                default:
+#if DEBUG
+                    if (!path.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+                        && !path.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+                        && !path.EndsWith(".map", StringComparison.OrdinalIgnoreCase)) // allow debug mode tu use original files
+                    {
+#endif
+                        Trace.TraceInformation("WebSearcherApplication.Application_BeginRequest URL KO : " + Request.RawUrl);
+                        Response.StatusCode = 404;
+                        Response.End();
+#if DEBUG
+                    }
+#endif
+                    break;
+            }
+        }
+
+
         protected void Application_PreSendRequestHeaders()
         {
             Response.Headers.Remove("Server"); // event statics content files thanks to runAllManagedModulesForAllRequests
             // Microsoft-HTTPAPI/2.0 Error 400 Bad Request - Invalid Hostname may still occure, fixed with a registry flag for httpd service
         }
 
-        protected void Application_Error(Object sender, EventArgs e)
+        protected void Application_Error(object sender, EventArgs e)
         {
             Exception ex = Server.GetLastError().GetBaseException();
             if (ex is HttpException && !ex.Message.Contains(" was not found on controller "))

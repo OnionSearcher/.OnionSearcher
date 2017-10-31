@@ -109,7 +109,8 @@ QuitWithRollback:
 EndSave:
 GO
 
-/****** Object:  Job [ManagerTaskLong]    Script Date: 22/07/2017 07:29:37 ******/
+
+/****** Object:  Job [ManagerTaskLong]    Script Date: 8/3/2017 1:08:46 PM ******/
 BEGIN TRANSACTION
 DECLARE @ReturnCode INT
 SELECT @ReturnCode = 0
@@ -126,7 +127,7 @@ EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'ManagerTaskLong',
 		@category_name=N'Data Collector', 
 		@owner_login_name=N'sqlManager', @job_id = @jobId OUTPUT
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [SelfPing]    Script Date: 22/07/2017 07:29:37 ******/
+/****** Object:  Step [SelfPing]    Script Date: 8/3/2017 1:08:47 PM ******/
 EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'SelfPing', 
 		@step_id=1, 
 		@cmdexec_success_code=0, 
@@ -141,7 +142,7 @@ EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'SelfPing
 		@database_name=N'websearcher-sql', 
 		@flags=0
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [MirrorsDetectTask]    Script Date: 22/07/2017 07:29:37 ******/
+/****** Object:  Step [MirrorsDetectTask]    Script Date: 8/3/2017 1:08:47 PM ******/
 EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'MirrorsDetectTask', 
 		@step_id=2, 
 		@cmdexec_success_code=0, 
@@ -162,7 +163,7 @@ END',
 		@database_name=N'websearcher-sql', 
 		@flags=4
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [PagesPurgeTask]    Script Date: 22/07/2017 07:29:37 ******/
+/****** Object:  Step [PagesPurgeTask]    Script Date: 8/3/2017 1:08:47 PM ******/
 EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'PagesPurgeTask', 
 		@step_id=3, 
 		@cmdexec_success_code=0, 
@@ -183,7 +184,7 @@ END',
 		@database_name=N'websearcher-sql', 
 		@flags=4
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [CrawleRequest Purge]    Script Date: 22/07/2017 07:29:37 ******/
+/****** Object:  Step [CrawleRequest Purge]    Script Date: 8/3/2017 1:08:47 PM ******/
 EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRequest Purge', 
 		@step_id=4, 
 		@cmdexec_success_code=0, 
@@ -224,13 +225,13 @@ EndSave:
 GO
 
 
-/****** Object:  Job [RequestFullHDCrawle]    Script Date: 09/07/2017 19:21:06 ******/
+/****** Object:  Job [RequestHDCrawleFast]    Script Date: 28/07/2017 13:11:51 ******/
 BEGIN TRANSACTION
 DECLARE @ReturnCode INT
 SELECT @ReturnCode = 0
 
 DECLARE @jobId BINARY(16)
-EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'RequestFullHDCrawle', 
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'RequestHDCrawleFast', 
 		@enabled=1, 
 		@notify_level_eventlog=0, 
 		@notify_level_email=0, 
@@ -239,9 +240,9 @@ EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'RequestFullHDCrawle',
 		@delete_level=0, 
 		@description=N'No description available.', 
 		@category_name=N'Data Collector', 
-		@owner_login_name=N'sqlWriter', @job_id = @jobId OUTPUT
+		@owner_login_name=N'websearcherdb\samfavstromal', @job_id = @jobId OUTPUT
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [CrawleRequestEnqueue]    Script Date: 09/07/2017 19:21:06 ******/
+/****** Object:  Step [CrawleRequestEnqueue]    Script Date: 28/07/2017 13:11:52 ******/
 EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRequestEnqueue', 
 		@step_id=1, 
 		@cmdexec_success_code=0, 
@@ -254,7 +255,12 @@ EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRe
 		@os_run_priority=0, @subsystem=N'TSQL', 
 		@command=N'DECLARE @hd AS NVARCHAR(450);
 DECLARE @cursor as CURSOR;
-SET @cursor = CURSOR FOR SELECT HiddenService FROM HiddenServices WHERE RANK>0 ORDER BY RANK DESC
+SET @cursor = CURSOR FOR
+	SELECT Url
+		FROM Pages WITH (NOLOCK)
+		WHERE Url=HiddenService
+			AND (CrawleError IS NULL OR CrawleError=1)
+			AND LastCrawle<DATEADD(HOUR, -12, SYSUTCDATETIME()) -- see time in [CheckCanCrawle]
 OPEN @cursor;
 FETCH NEXT FROM @cursor INTO @hd
 WHILE @@FETCH_STATUS = 0
@@ -269,7 +275,92 @@ DEALLOCATE @cursor;',
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
 EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'WEEKLY', 
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'every day 1 at 04:10', 
+		@enabled=1, 
+		@freq_type=8, 
+		@freq_interval=2, 
+		@freq_subday_type=1, 
+		@freq_subday_interval=0, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=1, 
+		@active_start_date=20170602, 
+		@active_end_date=99991231, 
+		@active_start_time=41000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'af5be6d5-9af0-4203-8b66-5e4e396e61f7'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'every day 3 at 04:10', 
+		@enabled=1, 
+		@freq_type=8, 
+		@freq_interval=8, 
+		@freq_subday_type=1, 
+		@freq_subday_interval=0, 
+		@freq_relative_interval=0, 
+		@freq_recurrence_factor=1, 
+		@active_start_date=20170716, 
+		@active_end_date=99991231, 
+		@active_start_time=41000, 
+		@active_end_time=235959, 
+		@schedule_uid=N'942a319c-395f-4535-9a7a-91da5f6424e5'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobserver @job_id = @jobId, @server_name = N'(local)'
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+COMMIT TRANSACTION
+GOTO EndSave
+QuitWithRollback:
+    IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
+EndSave:
+GO
+
+
+/****** Object:  Job [RequestHDCrawleLong]    Script Date: 28/07/2017 13:11:56 ******/
+BEGIN TRANSACTION
+DECLARE @ReturnCode INT
+SELECT @ReturnCode = 0
+
+DECLARE @jobId BINARY(16)
+EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'RequestHDCrawleLong', 
+		@enabled=1, 
+		@notify_level_eventlog=0, 
+		@notify_level_email=0, 
+		@notify_level_netsend=0, 
+		@notify_level_page=0, 
+		@delete_level=0, 
+		@description=N'No description available.', 
+		@category_name=N'Data Collector', 
+		@owner_login_name=N'websearcherdb\samfavstromal', @job_id = @jobId OUTPUT
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [CrawleRequestEnqueue]    Script Date: 28/07/2017 13:11:56 ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRequestEnqueue', 
+		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=1, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'DECLARE @hd AS NVARCHAR(450);
+DECLARE @cursor as CURSOR;
+SET @cursor = CURSOR FOR
+	SELECT HiddenService
+		FROM HiddenServices WITH (NOLOCK)
+OPEN @cursor;
+FETCH NEXT FROM @cursor INTO @hd
+WHILE @@FETCH_STATUS = 0
+BEGIN
+	EXEC CrawleRequestEnqueue @hd, 2
+	FETCH NEXT FROM @cursor INTO @hd
+END
+CLOSE @cursor;
+DEALLOCATE @cursor;', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'every day 5 at 04:10', 
 		@enabled=1, 
 		@freq_type=8, 
 		@freq_interval=32, 
@@ -279,7 +370,7 @@ EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'WEEKLY',
 		@freq_recurrence_factor=1, 
 		@active_start_date=20170709, 
 		@active_end_date=99991231, 
-		@active_start_time=0, 
+		@active_start_time=41000, 
 		@active_end_time=235959, 
 		@schedule_uid=N'c0d0e9f7-db38-4d58-8cda-d322844dceaf'
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
@@ -291,6 +382,7 @@ QuitWithRollback:
     IF (@@TRANCOUNT > 0) ROLLBACK TRANSACTION
 EndSave:
 GO
+
 
 /****** Object:  Job [DbaOptimTask1]    Script Date: 22/07/2017 07:30:53 ******/
 BEGIN TRANSACTION
@@ -472,7 +564,7 @@ EndSave:
 GO
 
 
-/****** Object:  Job [DbaOptimTask3]    Script Date: 22/07/2017 07:30:59 ******/
+/****** Object:  Job [DbaOptimTask3]    Script Date: 8/3/2017 1:09:14 PM ******/
 BEGIN TRANSACTION
 DECLARE @ReturnCode INT
 SELECT @ReturnCode = 0
@@ -489,9 +581,30 @@ EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'DbaOptimTask3',
 		@category_name=N'Database Maintenance', 
 		@owner_login_name=N'websearcherdb\samfavstromal', @job_id = @jobId OUTPUT
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [CrawleRequest REORGANIZE]    Script Date: 22/07/2017 07:30:59 ******/
-EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRequest REORGANIZE', 
+/****** Object:  Step [DbRowStats]    Script Date: 8/3/2017 1:09:14 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'DbRowStats', 
 		@step_id=1, 
+		@cmdexec_success_code=0, 
+		@on_success_action=3, 
+		@on_success_step_id=0, 
+		@on_fail_action=2, 
+		@on_fail_step_id=0, 
+		@retry_attempts=0, 
+		@retry_interval=0, 
+		@os_run_priority=0, @subsystem=N'TSQL', 
+		@command=N'  INSERT INTO DbRowStats VALUES (
+	SYSUTCDATETIME()
+	,(SELECT COUNT(1) FROM HiddenServices WITH (NOLOCK))
+	,(SELECT COUNT(1) FROM Pages WITH (NOLOCK) WHERE CrawleError IS NULL AND HiddenService=Url)
+	,(SELECT COUNT(1) FROM Pages WITH (NOLOCK))
+	,(SELECT COUNT(1) FROM Pages WITH (NOLOCK) WHERE CrawleError IS NULL)
+	) ', 
+		@database_name=N'websearcher-sql', 
+		@flags=4
+IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
+/****** Object:  Step [CrawleRequest REORGANIZE]    Script Date: 8/3/2017 1:09:14 PM ******/
+EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'CrawleRequest REORGANIZE', 
+		@step_id=2, 
 		@cmdexec_success_code=0, 
 		@on_success_action=1, 
 		@on_success_step_id=0, 
@@ -660,3 +773,10 @@ select TOP 1000 display_term, SUM(document_count) document_count from sys.dm_fts
 	  ) s
   )
 
+  -- Normalizing old Url loop
+SELECT top(1000) URL, substring(url, 0, CHARINDEX('?',url,37)) + REPLACE(REPLACE(substring(url, CHARINDEX('?',url,37),450),'/','%2'),' ','+') as url2 INTO #tmp FROM PAGES WITH (NOLOCK) WHERE URL LIKE '%?%/%'
+DELETE FROM Pages WHERE url in (SELECT url FROM #tmp WHERE EXISTS (SELECT 1 FROM Pages WITH (NOLOCK) WHERE url2=Pages.url))
+DELETE FROM #tmp WHERE EXISTS (SELECT 1 FROM Pages WITH (NOLOCK) WHERE url2=Pages.url)
+UPDATE p SET p.Url=t.url2 FROM Pages p INNER JOIN #tmp t on p.Url=t.Url
+DROP TABLE #tmp
+GO

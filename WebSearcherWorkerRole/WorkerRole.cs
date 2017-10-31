@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
+using HtmlAgilityPack;
 using WebSearcherCommon;
 
 namespace WebSearcherWorkerRole
@@ -21,9 +23,20 @@ namespace WebSearcherWorkerRole
                 RotManager.TryKillTorIfRequired();
 
                 // pools init
+#if DEBUG
+                taskPool = new List<Task>(Settings.Default.NbCrawlersPerInstance / 2);
+#else
                 taskPool = new List<Task>(Settings.Default.NbCrawlersPerInstance);
+#endif
                 for (int i = 0; i < taskPool.Capacity; i++)
                     taskPool.Add(null);
+                // NormalizeUrl Init
+                using (SqlManager sql = new SqlManager())
+                {
+                    UriManager.NormalizeUrlInit(sql);
+                }
+                int gCFullCollectRemainingMin = Settings.Default.GCFullCollectMin;
+                HtmlDocument.MaxDepthLevel = Int16.MaxValue; // default value Int32.MaxValue is far too hight : an call stack exeption will be raised far before (around 43k)...
 
                 // main loop
                 while (!cancellationToken.IsCancellationRequested)
@@ -41,13 +54,20 @@ namespace WebSearcherWorkerRole
                             int iVarRequiredForLambda = i; // <!> else the i may be changed by next for iteration in this multi task app !!!
                             taskPool[i] = Task.Run(() =>
                                 {
-                                    RunTask(iVarRequiredForLambda, cancellationToken).Wait(cancellationToken);
+                                    RunTask(iVarRequiredForLambda, cancellationToken).Wait(); // cancel supported by task, so not used for the wait()
                                 }, cancellationToken);
-                            Task.Delay(1000, cancellationToken).Wait(cancellationToken); // avoid violent startup by x tor started in same instant
+                            await Task.Delay(1000, cancellationToken); // avoid violent startup by x tor started in same instant
                         }
                     }
-
-                    await Task.Delay(30000, cancellationToken);
+                    await Task.Delay(60000, cancellationToken);    // 1 min
+                    // We use a lot of large object for short time, si need to change the GC default mode
+                    gCFullCollectRemainingMin--;
+                    if (!cancellationToken.IsCancellationRequested && gCFullCollectRemainingMin == 0)
+                    {
+                        gCFullCollectRemainingMin = Settings.Default.GCFullCollectMin;
+                        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce; // https://msdn.microsoft.com/en-us/library/system.runtime.gcsettings.largeobjectheapcompactionmode(v=vs.110).aspx
+                        GC.Collect();   // take some tome for freeing RAM and reduce LargeObjectHeap fragment
+                    }
                 }
             }
             catch (OperationCanceledException) { }
@@ -72,26 +92,21 @@ namespace WebSearcherWorkerRole
                 {
                     await rot.WaitStartAsync(cancellationToken); // wait tor for starting the crawling
                     using (ProxyManager proxy = new ProxyManager(i)) // synchro proxy recycle and Rot restart
+                    using (SqlManager sql = new SqlManager())
                     {
                         for (int end = 0; !cancellationToken.IsCancellationRequested && rot.IsProcessOk() && end < maxCallPerTask; end++) // need to determine how many "stable request" can be made before having the "same result for different url" issue
                         {
                             string url;
-                            using (SqlManager sql = new SqlManager())
-                            {
-                                url = await sql.CrawleRequestDequeueAsync(cancellationToken);
-                            }
+                            url = await sql.CrawleRequestDequeueAsync(cancellationToken);
                             if (!cancellationToken.IsCancellationRequested)
                             {
                                 if (!string.IsNullOrEmpty(url))
                                 {
                                     PerfCounter.CounterCrawleStarted.Increment();
-                                    if (await CrawleManager.CrawleOneAsync(proxy, url, cancellationToken))
+                                    if (await CrawleManager.CrawleOneAsync(proxy, url, sql, cancellationToken))
                                         PerfCounter.CounterCrawleValided.Increment();
                                     else if (!cancellationToken.IsCancellationRequested)  // fail requeue the URL en P5
-                                        using (SqlManager sql = new SqlManager())
-                                        {
-                                            await sql.CrawleRequestEnqueueAsync(url, cancellationToken);
-                                        }
+                                        await sql.CrawleRequestEnqueueAsync(url, 6, cancellationToken);
                                 }
                                 else // empty queue (what a dream!)
                                     await Task.Delay(1000, cancellationToken);
@@ -137,9 +152,6 @@ namespace WebSearcherWorkerRole
                 }
                 taskPool = null; // may raise exception on the i < taskPool.Count who may continue in parrallele
             }
-
-            RotManager.TryKillTorIfRequired();
-            
         }
 
     }

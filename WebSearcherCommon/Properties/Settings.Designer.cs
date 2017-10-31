@@ -25,10 +25,9 @@ namespace WebSearcherCommon {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("00:05:00")]
-        public global::System.TimeSpan RetrieveCrawleRequestSaved {
+        public global::System.Collections.Specialized.StringCollection Setting {
             get {
-                return ((global::System.TimeSpan)(this["RetrieveCrawleRequestSaved"]));
+                return ((global::System.Collections.Specialized.StringCollection)(this["Setting"]));
             }
         }
     }

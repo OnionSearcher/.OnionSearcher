@@ -21,10 +21,11 @@
     <UseGlobalApplicationHostFile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
+    <DebugType>pdbonly</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -92,6 +93,24 @@
     <Content Include="FullRestart.cmd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Include="ExpertBundle\Data\2\hostname">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ExpertBundle\Data\2\private_key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ExpertBundle\Data\1\hostname">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ExpertBundle\Data\1\private_key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ExpertBundle\Data\rotrc1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ExpertBundle\Data\rotrc2">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="package.json" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
@@ -111,10 +130,10 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
       <CustomToolNamespace>WebSearcherWebRole</CustomToolNamespace>
     </None>
-    <None Include="ExpertBundle\hostname">
+    <None Include="ExpertBundle\Data\0\hostname">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="ExpertBundle\private_key">
+    <None Include="ExpertBundle\Data\0\private_key">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <Content Include="Views\Shared\_Layout.cshtml" />
@@ -135,7 +154,6 @@
       <Link>Properties\AssemblyInfoGlobal.cs</Link>
     </Compile>
     <Compile Include="App_Start\RouteConfig.cs" />
-    <Compile Include="Controllers\ActionNamesAttribute.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>

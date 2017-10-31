@@ -40,5 +40,14 @@ namespace WebSearcherWorkerRole {
                 return ((int)(this["NbCrawlersPerInstance"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("30")]
+        public int GCFullCollectMin {
+            get {
+                return ((int)(this["GCFullCollectMin"]));
+            }
+        }
     }
 }

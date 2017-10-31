@@ -19,8 +19,6 @@ else
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.css?@(WebSearcherApplication.GetVersion())" />
 }
     <style>
-        html {
-        }
         html, body {
             position: relative;
             min-height: 100%;
@@ -61,15 +59,25 @@ else
             display: none;
         }
 
-        .indexForm, .contactScreen, .aboutScreen, .addScreen {
+        .aboutScreen {
+            position: absolute;
+            top: 40px;
+            width: 100%;
+        }
+
+        .indexForm, .contactScreen, .addScreen {
             position: absolute;
             top: 48%;
             transform: translateY(-50%);
             width: 100%;
         }
 
-        .mb16{
-            margin-bottom:16px;
+        .contactScreen, .aboutScreen, .addScreen {
+            z-index: 1050;
+        }
+        
+        .mb16 {
+            margin-bottom: 16px;
         }
 
         h1 {
@@ -100,6 +108,9 @@ else
             font-size: 22px !important;
             line-height: 18px;
         }
+        /* TOFIX : is small hight, about screen bug .modal-dialog {
+            margin: 60px auto;
+        }*/
         @@media screen and (min-width: 768px) {
             .jumbotron h1 {
                 font-size: 52px;
@@ -220,7 +231,6 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                     </div>
                 </div>
             </div>
-            <div class="text-muted container text-center"><br/>NEW : Added support of cache: intitle: intext: site: ; See About section for more information.</div>
         </div>
     </form>
 
@@ -295,11 +305,22 @@ else if (!string.IsNullOrEmpty(ViewBag.AlertSuccess))
                         <h4>Usage</h4>
                         <ul>
                             <li>Common words will be removed of the search query with a warning allowing you to be more specific</li>
-                            <li>Advanded query operators : 
-                                <a href="/?q=cache:onicoyceokzquk4i.onion" title="Display indexed content of an hidden service url">cache:[http://]<em>51t3.onion</em>[/...]</a>
-                                <a href="/?q=site:onicoyceokzquk4i.onion" title="Display indexed pages of an hidden service">site:[http://]<em>51t3.onion</em>[/...]</a>
-                                <a href="/?q=intitle:Tor Hidden Services Searcher" title="Display indexed pages of an hidden service">[all]intitle:<em>keyword [keywords]</em></a>
-                                <a href="/?q=intext:Tor Hidden Services Searcher" title="Display indexed pages of an hidden service">[all]intext:<em>keyword [keywords]</em></a>
+                            <li>Advanded query operators :
+                                <script>
+                                    // try to avoid to spider that doesn't parse JS, to crawle search result 
+                                    document.write('<a href="/?q=cache:onicoyceokzquk4i.onion" title="Display indexed content of an hidden service url">cache:[http://]<em>51t3.onion</em>[/...]</a>');
+                                    document.write('<a href="/?q=site:onicoyceokzquk4i.onion" title="Display indexed pages of an hidden service">site:[http://]<em>51t3.onion</em>[/...]</a>');
+                                    document.write('<a href="/?q=intitle:Tor Hidden Services Searcher" title="Search only in page title">[all]intitle:<em>keyword [keywords]</em></a>');
+                                    document.write('<a href="/?q=intext:Tor Hidden Services Searcher" title="Search only in page text content">[all]intext:<em>keyword [keywords]</em></a>');
+                                    document.write('<a href="/?q=inurl:contacts" title="Search only in url">[all]inurl:<em>keyword</em></a>');
+                                </script>
+                                <noscript>
+                                    cache:[http://]<em>51t3.onion</em>[/...]
+                                    site:[http://]<em>51t3.onion</em>[/...]
+                                    [all]intitle:<em>keyword [keywords]</em>
+                                    [all]intext:<em>keyword [keywords]</em>
+                                    [all]inurl:<em>keyword</em>
+                                </noscript>
                             </li>
                         </ul>
                         <h4>Policy</h4>

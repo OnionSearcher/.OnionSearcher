@@ -1,8 +1,8 @@
-SocksPort TBD0 IPv6Traffic PreferIPv6 KeepAliveIsolateSOCKSAuth
-ControlPort TBD1
-DataDirectory ./ExpertBundle/Data/0
+SocksPort TBD4 IPv6Traffic PreferIPv6 KeepAliveIsolateSOCKSAuth
+ControlPort TBD5
+DataDirectory ./ExpertBundle/Data/2
 
-HiddenServiceDir ./ExpertBundle/Data/0
+HiddenServiceDir ./ExpertBundle/Data/2
 # Azure default binding are on PRIVATE IP only : localhost host isn't allowed (this seems strange specialy if you use several application and WS/WCF for communation betweem them)
 HiddenServicePort 80 PRIVATEIP:TBD
 FetchHidServDescriptors 0

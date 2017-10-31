@@ -11,13 +11,14 @@ namespace WebSearcherCommon
     {
 
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private volatile bool RunCompleted = false;
 
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             if (e.ExceptionObject is Exception ex)
             {
                 Trace.TraceError("CommonRole.CurrentDomain_UnhandledException : " + ex.GetBaseException().Message, ex);
-                if(ex is OutOfMemoryException)  // may be raised by System.Net.WebClient.DownloadBitsState.RetrieveBytes
+                if (ex is OutOfMemoryException)  // may be raised by System.Net.WebClient.DownloadBitsState.RetrieveBytes
                 {
                     cancellationTokenSource.Cancel();
                 }
@@ -38,19 +39,19 @@ namespace WebSearcherCommon
 
             bool result = base.OnStart(); // will init azure trace
 
-            Trace.TraceInformation("CommonRole is starting");
+            Trace.TraceWarning("CommonRole is starting");
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             return result;
         }
-        
+
         public override void Run()
         {
             Trace.TraceInformation("CommonRole is running");
-            
+
             try
             {
-                RunAsync(cancellationTokenSource.Token).Wait(cancellationTokenSource.Token); // RunAsync will be override
+                RunAsync(cancellationTokenSource.Token).Wait(); // cancel supported by task, so not used for the wait()
             }
             catch (OperationCanceledException)
             {
@@ -63,8 +64,9 @@ namespace WebSearcherCommon
                 if (Debugger.IsAttached) { Debugger.Break(); }
 #endif
             }
+            RunCompleted = true;
         }
-        
+
         /// <summary>
         /// must be override
         /// </summary>
@@ -76,9 +78,14 @@ namespace WebSearcherCommon
 
         public override void OnStop()
         {
-            Trace.TraceInformation("CommonRole is stopping");
+            Trace.TraceWarning("CommonRole is stopping");
 
             cancellationTokenSource.Cancel();
+
+            while (!RunCompleted)    // wait run finish
+                Task.Delay(30000);
+
+            RotManager.TryKillTorIfRequired();
 
             base.OnStop();
         }

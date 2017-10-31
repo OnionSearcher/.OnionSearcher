@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.27004.2005
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "AzureSearcherWebRole", "AzureSearcherWebRole\AzureSearcherWebRole.ccproj", "{B191BD35-21A5-4EB1-8EA2-5F8931AB0800}"
 EndProject
@@ -58,5 +58,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2B3F345C-BE0D-40DE-B797-D92F83F97790}
 	EndGlobalSection
 EndGlobal
